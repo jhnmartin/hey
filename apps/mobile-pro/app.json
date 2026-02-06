@@ -8,6 +8,7 @@
     "scheme": "heythursdaypro",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
+    "plugins": ["expo-router"],
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",

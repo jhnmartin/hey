@@ -1,7 +1,7 @@
 {
   "name": "mobile-pro",
   "version": "1.0.0",
-  "main": "index.ts",
+  "main": "./index.js",
   "private": true,
   "scripts": {
     "dev": "EXPO_NO_DOCTOR=1 expo start --port 8082",
@@ -13,12 +13,20 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.0.3",
     "@repo/backend": "workspace:*",
     "convex": "^1.31.7",
     "expo": "~54.0.33",
+    "expo-constants": "~18.0.13",
+    "expo-linking": "~8.0.11",
+    "expo-router": "~6.0.23",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
-    "react-native": "0.81.5"
+    "react-native": "0.81.5",
+    "react-native-reanimated": "~4.1.1",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
+    "react-native-svg": "~15.12.1"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
