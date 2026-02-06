@@ -1,10 +1,11 @@
 {
   "expo": {
-    "name": "mobile-pro",
-    "slug": "mobile-pro",
+    "name": "hey thursday pro",
+    "slug": "hey-thursday-pro",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "scheme": "heythursdaypro",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
@@ -13,9 +14,14 @@
       "backgroundColor": "#000000"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "app.heythursday.pro",
+      "infoPlist": {
+        "CFBundleDisplayName": "hey thursday pro"
+      }
     },
     "android": {
+      "package": "app.heythursday.pro",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"

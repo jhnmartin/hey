@@ -1,10 +1,11 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "hey thursday",
+    "slug": "hey-thursday",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "scheme": "heythursday",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -13,9 +14,14 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "app.heythursday.hey",
+      "infoPlist": {
+        "CFBundleDisplayName": "hey thursday"
+      }
     },
     "android": {
+      "package": "app.heythursday.hey",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
