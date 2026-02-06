@@ -2,20 +2,22 @@
 
 import * as React from "react"
 import {
-  AudioWaveform,
+  BarChart3,
   BookOpen,
-  Bot,
-  Command,
-  Frame,
-  GalleryVerticalEnd,
-  Map,
-  PieChart,
+  Calendar,
+  FolderOpen,
+  Hash,
+  KanbanSquare,
+  LayoutDashboard,
+  LifeBuoy,
+  Megaphone,
   Settings2,
-  SquareTerminal,
+  Users,
 } from "lucide-react"
 
+import { NavActiveEvents } from "@/components/nav-active-events"
 import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
+import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
 import {
@@ -26,132 +28,122 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 
-// This is sample data.
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: "Jordan Smith",
+    email: "jordan@heythursday.app",
+    avatar: "",
   },
-  teams: [
-    {
-      name: "Acme Inc",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
-    },
-  ],
   navMain: [
     {
-      title: "Playground",
-      url: "#",
-      icon: SquareTerminal,
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: LayoutDashboard,
+    },
+    {
+      title: "Events",
+      url: "/dashboard/events",
+      icon: Calendar,
       isActive: true,
       items: [
         {
-          title: "History",
-          url: "#",
+          title: "All Events",
+          url: "/dashboard/events",
         },
         {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
+          title: "Create Event",
+          url: "/dashboard/events/new",
         },
       ],
     },
     {
-      title: "Models",
-      url: "#",
-      icon: Bot,
+      title: "Marketing",
+      url: "/dashboard/marketing/hey-comms",
+      icon: Megaphone,
       items: [
         {
-          title: "Genesis",
-          url: "#",
+          title: "hey comms",
+          url: "/dashboard/marketing/hey-comms",
         },
         {
-          title: "Explorer",
-          url: "#",
+          title: "get radical",
+          url: "/dashboard/marketing/get-radical",
         },
         {
-          title: "Quantum",
-          url: "#",
+          title: "Strats",
+          url: "/dashboard/marketing/strats",
         },
       ],
     },
     {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
+      title: "Channels",
+      url: "/dashboard/channels/general",
+      icon: Hash,
       items: [
         {
-          title: "Introduction",
-          url: "#",
+          title: "#general",
+          url: "/dashboard/channels/general",
         },
         {
-          title: "Get Started",
-          url: "#",
+          title: "#random",
+          url: "/dashboard/channels/random",
         },
         {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
+          title: "New Channel",
+          url: "/dashboard/channels/new",
         },
       ],
+    },
+    {
+      title: "Tasks",
+      url: "/dashboard/tasks",
+      icon: KanbanSquare,
+    },
+    {
+      title: "Files",
+      url: "/dashboard/files",
+      icon: FolderOpen,
+    },
+    {
+      title: "Analytics",
+      url: "/dashboard/analytics",
+      icon: BarChart3,
+    },
+    {
+      title: "Team",
+      url: "/dashboard/team",
+      icon: Users,
     },
     {
       title: "Settings",
-      url: "#",
+      url: "/dashboard/settings",
       icon: Settings2,
       items: [
         {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
+          title: "Account",
+          url: "/dashboard/settings/account",
         },
         {
           title: "Billing",
-          url: "#",
+          url: "/dashboard/settings/billing",
         },
         {
-          title: "Limits",
-          url: "#",
+          title: "Notifications",
+          url: "/dashboard/settings/notifications",
         },
       ],
     },
   ],
-  projects: [
+  secondary: [
     {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
+      title: "Support",
+      url: "/dashboard/support",
+      icon: LifeBuoy,
     },
     {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
+      title: "Documentation",
+      url: "/dashboard/docs",
+      icon: BookOpen,
     },
   ],
 }
@@ -160,11 +152,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <TeamSwitcher />
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+        <NavActiveEvents />
+        <NavSecondary items={data.secondary} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />

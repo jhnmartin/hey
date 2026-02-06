@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import ConvexClientProvider from "./ConvexClientProvider";
+import { ViewSwitcher } from "@/components/view-switcher";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -62,7 +63,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <ConvexClientProvider>{children}</ConvexClientProvider>
+        <ConvexClientProvider>
+          {children}
+          <ViewSwitcher />
+        </ConvexClientProvider>
       </body>
     </html>
   );

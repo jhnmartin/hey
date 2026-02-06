@@ -1,60 +1,60 @@
-import type { Metadata } from "next"
-import { AppSidebar } from "@/components/app-sidebar"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
+"use client"
 
-export const metadata: Metadata = {
-  title: "Dashboard",
+import { useOrg } from "@/components/org-context"
+
+const orgStats: Record<string, { events: number; rsvps: number; revenue: string }> = {
+  "hey thursday": { events: 3, rsvps: 890, revenue: "$4,250" },
+  "Neon Events Co": { events: 3, rsvps: 435, revenue: "$2,100" },
 }
 
-export default function Page() {
+const orgActivity: Record<string, string[]> = {
+  "hey thursday": [
+    'New RSVP for "Thursday Night Live" — 2 minutes ago',
+    '"Rooftop Sunset Party" ticket sold — 15 minutes ago',
+    '"Underground Beats" event published — 1 hour ago',
+    "New team member added — 3 hours ago",
+  ],
+  "Neon Events Co": [
+    '"Neon Nights Festival" ticket sold — 5 minutes ago',
+    'New RSVP for "Jazz & Wine Evening" — 30 minutes ago',
+    '"Acoustic Sessions" event published — 2 hours ago',
+    "Venue confirmed for Neon Nights — 4 hours ago",
+  ],
+}
+
+export default function DashboardPage() {
+  const { activeOrg } = useOrg()
+  const stats = orgStats[activeOrg.name] ?? orgStats["hey thursday"]!
+  const activity = orgActivity[activeOrg.name] ?? orgActivity["hey thursday"]!
+
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator
-              orientation="vertical"
-              className="mr-2 data-[orientation=vertical]:h-4"
-            />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="#">
-                    Building Your Application
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Data Fetching</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-        </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-            <div className="bg-muted/50 aspect-video rounded-xl" />
-            <div className="bg-muted/50 aspect-video rounded-xl" />
-            <div className="bg-muted/50 aspect-video rounded-xl" />
-          </div>
-          <div className="bg-muted/50 min-h-[100vh] flex-1 rounded-xl md:min-h-min" />
+    <>
+      <div className="grid auto-rows-min gap-4 md:grid-cols-3">
+        <div className="bg-muted/50 rounded-xl p-6">
+          <p className="text-muted-foreground text-sm font-medium">
+            Total Events
+          </p>
+          <p className="text-3xl font-bold">{stats.events}</p>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+        <div className="bg-muted/50 rounded-xl p-6">
+          <p className="text-muted-foreground text-sm font-medium">
+            Total RSVPs
+          </p>
+          <p className="text-3xl font-bold">{stats.rsvps.toLocaleString()}</p>
+        </div>
+        <div className="bg-muted/50 rounded-xl p-6">
+          <p className="text-muted-foreground text-sm font-medium">Revenue</p>
+          <p className="text-3xl font-bold">{stats.revenue}</p>
+        </div>
+      </div>
+      <div className="bg-muted/50 min-h-[50vh] flex-1 rounded-xl p-6">
+        <h2 className="mb-4 text-lg font-semibold">Recent Activity</h2>
+        <div className="text-muted-foreground space-y-3 text-sm">
+          {activity.map((item) => (
+            <p key={item}>{item}</p>
+          ))}
+        </div>
+      </div>
+    </>
   )
 }
