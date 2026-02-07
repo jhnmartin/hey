@@ -104,7 +104,12 @@ Deployed at `https://bold-dodo-75.convex.cloud`. Import API from `@repo/backend/
 
 Tables:
 - `tasks` — demo todo items
-- `profiles` — user profile (name, email, phone, bio, avatarUrl, city, dateOfBirth). Single seeded profile shared across web and mobile. Functions: `profiles.get`, `profiles.seed`, `profiles.update`.
+- `profiles` — user profile shared across web and mobile
+  - **Fields**: name, email, phone?, bio?, avatarUrl?, city?, dateOfBirth?, role (`attendee` | `organizer`)
+  - **Role**: defaults to `attendee`. `organizer` grants access to dashboard routes. Code uses `attendee`/`organizer`; brand-facing UI may use "Collab Mode" for the organizer experience.
+  - **Functions**: `profiles.get` (returns first profile), `profiles.seed` (creates default attendee), `profiles.update` (partial patch by ID)
+  - **Shared component**: `ProfileForm` (`apps/web/components/profile-form.tsx`) is used by both `(public)/settings` and `dashboard/settings/account`
+  - **Route gating**: `RequireOrganizer` wrapper on dashboard layout redirects non-organizers to `/events`
 
 ## Route Structure
 
@@ -117,4 +122,4 @@ Tables:
 - Stack screens: Settings, Notifications, Messages
 
 ### Mobile-Pro (`apps/mobile-pro/app/`)
-- Single screen (scaffolded, pages to be added)
+- `(tabs)/` — Home (events list), Settings (profile edit with Convex)

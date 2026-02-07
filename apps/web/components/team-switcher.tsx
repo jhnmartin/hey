@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { ChevronsUpDown, Plus } from "lucide-react"
+import Link from "next/link"
+import { ChevronsUpDown, Plus, Settings } from "lucide-react"
 
 import {
   DropdownMenu,
@@ -66,6 +67,16 @@ export function TeamSwitcher() {
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator />
+            <DropdownMenuItem asChild className="gap-2 p-2">
+              <Link href="/dashboard/organization">
+                <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
+                  <Settings className="size-4" />
+                </div>
+                <div className="text-muted-foreground font-medium">
+                  Manage Organization
+                </div>
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem className="gap-2 p-2">
               <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
                 <Plus className="size-4" />

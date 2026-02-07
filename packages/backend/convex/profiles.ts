@@ -19,6 +19,7 @@ export const seed = mutation({
       email: "jordan@heythursday.app",
       city: "Austin, TX",
       bio: "Music lover and event-goer.",
+      role: "attendee",
     });
   },
 });

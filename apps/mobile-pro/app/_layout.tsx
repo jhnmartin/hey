@@ -9,13 +9,7 @@ const convex = new ConvexReactClient(
 export default function RootLayout() {
   return (
     <ConvexProvider client={convex}>
-      <Stack
-        screenOptions={{
-          headerShown: true,
-          headerTitle: "hey thursday pro",
-          headerTitleStyle: { fontWeight: "700", fontSize: 20 },
-        }}
-      />
+      <Stack screenOptions={{ headerShown: false }} />
     </ConvexProvider>
   );
 }

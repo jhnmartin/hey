@@ -11,7 +11,6 @@ import {
   LayoutDashboard,
   LifeBuoy,
   Megaphone,
-  Settings2,
   Users,
 } from "lucide-react"
 
@@ -29,11 +28,6 @@ import {
 } from "@/components/ui/sidebar"
 
 const data = {
-  user: {
-    name: "Jordan Smith",
-    email: "jordan@heythursday.app",
-    avatar: "",
-  },
   navMain: [
     {
       title: "Dashboard",
@@ -114,25 +108,6 @@ const data = {
       url: "/dashboard/team",
       icon: Users,
     },
-    {
-      title: "Settings",
-      url: "/dashboard/settings",
-      icon: Settings2,
-      items: [
-        {
-          title: "Account",
-          url: "/dashboard/settings/account",
-        },
-        {
-          title: "Billing",
-          url: "/dashboard/settings/billing",
-        },
-        {
-          title: "Notifications",
-          url: "/dashboard/settings/notifications",
-        },
-      ],
-    },
   ],
   secondary: [
     {
@@ -160,7 +135,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSecondary items={data.secondary} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
