@@ -1,9 +1,41 @@
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@repo/backend/convex/_generated/api";
+import { useEffect } from "react";
+
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const profile = useQuery(api.profiles.get);
+  const seed = useMutation(api.profiles.seed);
+
+  useEffect(() => {
+    void seed();
+  }, [seed]);
+
+  if (profile === undefined) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Profile</Text>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" />
+        </View>
+      </View>
+    );
+  }
+
+  const initials = profile?.name ? getInitials(profile.name) : "?";
+  const displayName = profile?.name ?? "Guest";
 
   return (
     <View style={styles.container}>
@@ -11,9 +43,11 @@ export default function ProfileScreen() {
 
       <View style={styles.avatarSection}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>?</Text>
+          <Text style={styles.avatarText}>{initials}</Text>
         </View>
-        <Text style={styles.name}>Guest</Text>
+        <Text style={styles.name}>{displayName}</Text>
+        {profile?.email && <Text style={styles.detail}>{profile.email}</Text>}
+        {profile?.city && <Text style={styles.detail}>{profile.city}</Text>}
       </View>
 
       <View style={styles.menu}>
@@ -44,6 +78,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", paddingHorizontal: 24, paddingTop: 16 },
   title: { fontSize: 24, fontWeight: "bold", color: "#000" },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   avatarSection: { marginTop: 24, alignItems: "center" },
   avatar: {
     height: 80, width: 80, borderRadius: 40,
@@ -51,6 +86,7 @@ const styles = StyleSheet.create({
   },
   avatarText: { fontSize: 24, color: "#6b7280" },
   name: { marginTop: 12, fontSize: 18, fontWeight: "600", color: "#000" },
+  detail: { marginTop: 4, fontSize: 14, color: "#6b7280" },
   menu: { marginTop: 32, gap: 8 },
   menuItem: {
     flexDirection: "row", alignItems: "center", gap: 12,

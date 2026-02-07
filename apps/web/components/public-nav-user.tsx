@@ -1,6 +1,8 @@
 "use client"
 
 import Link from "next/link"
+import { useQuery } from "convex/react"
+import { api } from "@repo/backend/convex/_generated/api"
 import {
   Avatar,
   AvatarFallback,
@@ -19,7 +21,19 @@ import {
   User,
 } from "lucide-react"
 
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2)
+}
+
 export function PublicNavUser() {
+  const profile = useQuery(api.profiles.get)
+  const initials = profile?.name ? getInitials(profile.name) : "?"
+
   return (
     <div className="flex items-center gap-3">
       <Link
@@ -39,7 +53,7 @@ export function PublicNavUser() {
         <DropdownMenuTrigger asChild>
           <button className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Avatar className="size-8">
-              <AvatarFallback className="text-xs">JS</AvatarFallback>
+              <AvatarFallback className="text-xs">{initials}</AvatarFallback>
             </Avatar>
           </button>
         </DropdownMenuTrigger>

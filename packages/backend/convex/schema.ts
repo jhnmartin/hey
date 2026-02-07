@@ -6,4 +6,13 @@ export default defineSchema({
     text: v.string(),
     isCompleted: v.boolean(),
   }),
+  profiles: defineTable({
+    name: v.string(),
+    email: v.string(),
+    phone: v.optional(v.string()),
+    bio: v.optional(v.string()),
+    avatarUrl: v.optional(v.string()),
+    city: v.optional(v.string()),
+    dateOfBirth: v.optional(v.string()),
+  }),
 });
