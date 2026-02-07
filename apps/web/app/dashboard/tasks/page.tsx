@@ -44,7 +44,7 @@ export default function TasksPage() {
       <div className="grid min-h-[60vh] gap-4 md:grid-cols-4">
         {columns.map((column) => {
           const orgTasks = column.tasks.filter(
-            (t) => t.org === activeOrg.name
+            (t) => t.org === activeOrg?.name
           )
           return (
             <div key={column.title} className="bg-muted/50 rounded-xl p-4">

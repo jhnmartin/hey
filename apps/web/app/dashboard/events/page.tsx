@@ -6,7 +6,7 @@ import { allEvents } from "@/lib/dummy-events"
 
 export default function EventsPage() {
   const { activeOrg } = useOrg()
-  const events = allEvents.filter((e) => e.org === activeOrg.name)
+  const events = allEvents.filter((e) => e.org === activeOrg?.name)
 
   return (
     <>

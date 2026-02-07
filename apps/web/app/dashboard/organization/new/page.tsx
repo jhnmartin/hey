@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useMutation } from "convex/react"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { useMutation, useQuery } from "convex/react"
 import { api } from "@repo/backend/convex/_generated/api"
-import { useOrg } from "@/components/org-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,9 +17,10 @@ import {
 
 type OrgRole = "venue" | "performer" | "promoter"
 
-export default function OrganizationSettingsPage() {
-  const { activeOrg } = useOrg()
-  const updateOrg = useMutation(api.organizations.update)
+export default function NewOrganizationPage() {
+  const router = useRouter()
+  const profile = useQuery(api.profiles.get)
+  const createOrg = useMutation(api.organizations.create)
 
   const [name, setName] = useState("")
   const [role, setRole] = useState<OrgRole>("venue")
@@ -27,44 +28,24 @@ export default function OrganizationSettingsPage() {
   const [avatarUrl, setAvatarUrl] = useState("")
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    if (activeOrg) {
-      setName(activeOrg.name)
-      setRole(activeOrg.role)
-      setEmail(activeOrg.email)
-      setAvatarUrl(activeOrg.avatarUrl ?? "")
-    }
-  }, [activeOrg])
-
-  async function handleSave(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!activeOrg) return
+    if (!profile) return
     setSaving(true)
-    await updateOrg({
-      id: activeOrg._id,
+    await createOrg({
       name,
       role,
       email,
+      ownerId: profile._id,
       ...(avatarUrl ? { avatarUrl } : {}),
     })
-    setSaving(false)
-  }
-
-  if (!activeOrg) {
-    return (
-      <>
-        <h1 className="text-2xl font-bold">Organization Settings</h1>
-        <p className="text-muted-foreground">
-          No organization selected. Create one from the sidebar.
-        </p>
-      </>
-    )
+    router.push("/dashboard")
   }
 
   return (
     <>
-      <h1 className="text-2xl font-bold">Organization Settings</h1>
-      <form onSubmit={handleSave} className="bg-muted/50 max-w-lg rounded-xl p-6">
+      <h1 className="text-2xl font-bold">Create Organization</h1>
+      <form onSubmit={handleSubmit} className="bg-muted/50 max-w-lg rounded-xl p-6">
         <div className="space-y-3">
           <div>
             <Label htmlFor="name">Name</Label>
@@ -109,8 +90,8 @@ export default function OrganizationSettingsPage() {
               className="mt-1"
             />
           </div>
-          <Button type="submit" disabled={saving}>
-            {saving ? "Saving..." : "Save Changes"}
+          <Button type="submit" disabled={saving || !profile}>
+            {saving ? "Creating..." : "Create Organization"}
           </Button>
         </div>
       </form>
