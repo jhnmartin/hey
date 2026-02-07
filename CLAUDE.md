@@ -100,7 +100,11 @@ cd apps/mobile-pro && npx expo start -c --port 8082
 
 ## Convex Backend
 
-Deployed at `https://bold-dodo-75.convex.cloud`. Schema currently has a `tasks` table. Import API from `@repo/backend/convex/_generated/api`.
+Deployed at `https://bold-dodo-75.convex.cloud`. Import API from `@repo/backend/convex/_generated/api`.
+
+Tables:
+- `tasks` — demo todo items
+- `profiles` — user profile (name, email, phone, bio, avatarUrl, city, dateOfBirth). Single seeded profile shared across web and mobile. Functions: `profiles.get`, `profiles.seed`, `profiles.update`.
 
 ## Route Structure
 
