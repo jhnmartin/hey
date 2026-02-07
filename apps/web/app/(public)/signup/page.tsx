@@ -1,37 +1,199 @@
-import type { Metadata } from "next"
-import Link from "next/link"
+"use client"
 
-export const metadata: Metadata = {
-  title: "Sign Up",
-}
+import { useState, useCallback } from "react"
+import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useSignUp } from "@clerk/nextjs"
+import { useMutation } from "convex/react"
+import { api } from "@repo/backend/convex/_generated/api"
+
+type Role = "attendee" | "organizer"
 
 export default function SignupPage() {
+  const { signUp, setActive, isLoaded } = useSignUp()
+  const getOrCreate = useMutation(api.profiles.getOrCreate)
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const initialRole = (searchParams.get("role") as Role) ?? null
+  const [role, setRole] = useState<Role | null>(initialRole)
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [code, setCode] = useState("")
+  const [verifying, setVerifying] = useState(false)
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  const onSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault()
+      if (!isLoaded || !role) return
+      setLoading(true)
+      setError("")
+      try {
+        const [firstName, ...rest] = name.split(" ")
+        await signUp.create({
+          firstName: firstName ?? "",
+          lastName: rest.join(" "),
+          emailAddress: email,
+          password,
+        })
+
+        await signUp.prepareEmailAddressVerification({
+          strategy: "email_code",
+        })
+        setVerifying(true)
+      } catch (err: any) {
+        setError(err.errors?.[0]?.longMessage ?? "Sign up failed")
+      } finally {
+        setLoading(false)
+      }
+    },
+    [isLoaded, name, email, password, role],
+  )
+
+  const onVerify = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault()
+      if (!isLoaded || !role) return
+      setLoading(true)
+      setError("")
+      try {
+        const result = await signUp.attemptEmailAddressVerification({ code })
+
+        if (result.status === "complete") {
+          await setActive({ session: result.createdSessionId })
+          await getOrCreate({ role })
+          router.push("/auth-callback")
+        }
+      } catch (err: any) {
+        setError(err.errors?.[0]?.longMessage ?? "Verification failed")
+      } finally {
+        setLoading(false)
+      }
+    },
+    [isLoaded, code, role],
+  )
+
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-sm flex-col items-center justify-center px-4">
       <h1 className="text-2xl font-bold">Create your account</h1>
       <p className="text-muted-foreground mt-2 text-center text-sm">
         Join hey thursday to discover events and never miss a night out.
       </p>
-      <div className="mt-8 w-full space-y-4">
-        <div>
-          <label className="text-sm font-medium">Name</label>
-          <div className="bg-background mt-1 h-10 rounded-md border" />
+
+      {verifying ? (
+        <form onSubmit={onVerify} className="mt-8 w-full space-y-4">
+          <p className="text-sm">
+            We sent a verification code to <strong>{email}</strong>
+          </p>
+
+          {error && (
+            <p className="text-sm text-red-500">{error}</p>
+          )}
+
+          <div>
+            <label className="text-sm font-medium">Verification Code</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              className="bg-background mt-1 h-10 w-full rounded-md border px-3 text-center text-lg tracking-widest"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-primary text-primary-foreground flex h-10 w-full items-center justify-center rounded-md text-sm font-medium disabled:opacity-50"
+          >
+            {loading ? "Verifying..." : "Verify Email"}
+          </button>
+        </form>
+      ) : !role ? (
+        <div className="mt-8 w-full space-y-3">
+          <p className="text-sm font-medium">I want to...</p>
+          <button
+            onClick={() => setRole("attendee")}
+            className="border-border hover:border-foreground w-full rounded-lg border p-4 text-left transition-colors"
+          >
+            <p className="font-medium">Find cool things to do</p>
+            <p className="text-muted-foreground text-sm">
+              Discover events, RSVP, and get tickets
+            </p>
+          </button>
+          <button
+            onClick={() => setRole("organizer")}
+            className="border-border hover:border-foreground w-full rounded-lg border p-4 text-left transition-colors"
+          >
+            <p className="font-medium">Create and host live events</p>
+            <p className="text-muted-foreground text-sm">
+              Manage events, teams, and marketing
+            </p>
+          </button>
         </div>
-        <div>
-          <label className="text-sm font-medium">Email</label>
-          <div className="bg-background mt-1 h-10 rounded-md border" />
-        </div>
-        <div>
-          <label className="text-sm font-medium">Password</label>
-          <div className="bg-background mt-1 h-10 rounded-md border" />
-        </div>
-        <div className="bg-primary text-primary-foreground flex h-10 cursor-not-allowed items-center justify-center rounded-md text-sm font-medium opacity-50">
-          Sign Up
-        </div>
-      </div>
+      ) : (
+        <form onSubmit={onSubmit} className="mt-8 w-full space-y-4">
+          <button
+            type="button"
+            onClick={() => setRole(null)}
+            className="text-muted-foreground hover:text-foreground text-sm"
+          >
+            &larr; Change role
+          </button>
+
+          {error && (
+            <p className="text-sm text-red-500">{error}</p>
+          )}
+
+          <div>
+            <label className="text-sm font-medium">Name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="bg-background mt-1 h-10 w-full rounded-md border px-3"
+              required
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="bg-background mt-1 h-10 w-full rounded-md border px-3"
+              required
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="bg-background mt-1 h-10 w-full rounded-md border px-3"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-primary text-primary-foreground flex h-10 w-full items-center justify-center rounded-md text-sm font-medium disabled:opacity-50"
+          >
+            {loading ? "Creating account..." : "Sign Up"}
+          </button>
+        </form>
+      )}
+
       <p className="text-muted-foreground mt-6 text-sm">
         Already have an account?{" "}
-        <Link href="/login" className="text-foreground underline">
+        <Link
+          href={role ? `/login?role=${role}` : "/login"}
+          className="text-foreground underline"
+        >
           Log in
         </Link>
       </p>

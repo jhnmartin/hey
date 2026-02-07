@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@repo/backend/convex/_generated/api"
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,7 +11,6 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 export function ProfileForm() {
   const profile = useQuery(api.profiles.get)
-  const seedProfile = useMutation(api.profiles.seed)
   const updateProfile = useMutation(api.profiles.update)
 
   const [name, setName] = useState("")
@@ -21,10 +20,6 @@ export function ProfileForm() {
   const [dateOfBirth, setDateOfBirth] = useState("")
   const [bio, setBio] = useState("")
   const [saving, setSaving] = useState(false)
-
-  useEffect(() => {
-    void seedProfile()
-  }, [seedProfile])
 
   useEffect(() => {
     if (profile) {

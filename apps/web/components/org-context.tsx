@@ -29,11 +29,7 @@ type OrgContextValue = {
 const OrgContext = createContext<OrgContextValue | null>(null)
 
 export function OrgProvider({ children }: { children: ReactNode }) {
-  const profile = useQuery(api.profiles.get)
-  const orgs = useQuery(
-    api.organizations.listByOwner,
-    profile ? { ownerId: profile._id } : "skip",
-  )
+  const orgs = useQuery(api.organizations.listByOwner)
 
   const [activeOrg, setActiveOrg] = useState<Org | null>(null)
 

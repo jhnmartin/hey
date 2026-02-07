@@ -4,22 +4,43 @@ import { v } from "convex/values";
 export const get = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query("profiles").first();
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    return await ctx.db
+      .query("profiles")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
   },
 });
 
-export const seed = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const existing = await ctx.db.query("profiles").first();
-    if (existing) return;
+export const getOrCreate = mutation({
+  args: {
+    role: v.optional(
+      v.union(v.literal("attendee"), v.literal("organizer")),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
 
-    await ctx.db.insert("profiles", {
-      name: "Jordan Smith",
-      email: "jordan@heythursday.app",
-      city: "Austin, TX",
-      bio: "Music lover and event-goer.",
-      role: "attendee",
+    const existing = await ctx.db
+      .query("profiles")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+
+    if (existing) return existing._id;
+
+    return await ctx.db.insert("profiles", {
+      tokenIdentifier: identity.tokenIdentifier,
+      name: identity.name ?? "",
+      email: identity.email ?? "",
+      avatarUrl: undefined,
+      role: args.role ?? "attendee",
     });
   },
 });
@@ -34,10 +55,20 @@ export const update = mutation({
     avatarUrl: v.optional(v.string()),
     city: v.optional(v.string()),
     dateOfBirth: v.optional(v.string()),
+    role: v.optional(
+      v.union(v.literal("attendee"), v.literal("organizer")),
+    ),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const profile = await ctx.db.get(args.id);
+    if (!profile || profile.tokenIdentifier !== identity.tokenIdentifier) {
+      throw new Error("Unauthorized");
+    }
+
     const { id, ...fields } = args;
-    // Remove undefined fields so patch only updates provided values
     const updates: Record<string, string> = {};
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) {
