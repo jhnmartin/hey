@@ -1,9 +1,9 @@
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
+import { useClerk } from "@clerk/clerk-expo";
 import { api } from "@repo/backend/convex/_generated/api";
-import { useEffect } from "react";
 
 function getInitials(name: string) {
   return name
@@ -16,12 +16,8 @@ function getInitials(name: string) {
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { signOut } = useClerk();
   const profile = useQuery(api.profiles.get);
-  const seed = useMutation(api.profiles.seed);
-
-  useEffect(() => {
-    void seed();
-  }, [seed]);
 
   if (profile === undefined) {
     return (
@@ -66,7 +62,7 @@ export default function ProfileScreen() {
           <Text style={styles.menuText}>Messages</Text>
         </Pressable>
 
-        <Pressable style={styles.menuItem}>
+        <Pressable style={styles.menuItem} onPress={() => signOut()}>
           <Ionicons name="log-out-outline" size={20} color="#ef4444" />
           <Text style={[styles.menuText, { color: "#ef4444" }]}>Log Out</Text>
         </Pressable>

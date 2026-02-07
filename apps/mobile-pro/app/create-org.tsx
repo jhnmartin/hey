@@ -7,7 +7,7 @@ import {
   Pressable,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useQuery, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "@repo/backend/convex/_generated/api";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
@@ -18,7 +18,6 @@ const roles: OrgRole[] = ["venue", "performer", "promoter"];
 
 export default function CreateOrgScreen() {
   const router = useRouter();
-  const profile = useQuery(api.profiles.get);
   const createOrg = useMutation(api.organizations.create);
 
   const [name, setName] = useState("");
@@ -28,13 +27,12 @@ export default function CreateOrgScreen() {
   const [saving, setSaving] = useState(false);
 
   async function handleCreate() {
-    if (!profile || !name || !email) return;
+    if (!name || !email) return;
     setSaving(true);
     await createOrg({
       name,
       role,
       email,
-      ownerId: profile._id,
       ...(avatarUrl ? { avatarUrl } : {}),
     });
     setSaving(false);
@@ -170,7 +168,7 @@ export default function CreateOrgScreen() {
             paddingVertical: 14,
             marginTop: 8,
             marginBottom: 40,
-            opacity: saving || !name || !email ? 0.5 : 1,
+            opacity: (saving || !name || !email) ? 0.5 : 1,
           }}
         >
           <Text style={{ color: "#000", fontWeight: "600", fontSize: 15 }}>

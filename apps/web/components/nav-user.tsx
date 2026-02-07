@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useQuery } from "convex/react"
+import { useClerk } from "@clerk/nextjs"
 import { api } from "@repo/backend/convex/_generated/api"
 import {
   BadgeCheck,
@@ -45,6 +46,7 @@ function getInitials(name: string) {
 export function NavUser() {
   const { isMobile } = useSidebar()
   const profile = useQuery(api.profiles.get)
+  const { signOut } = useClerk()
 
   const name = profile?.name ?? ""
   const email = profile?.email ?? ""
@@ -118,7 +120,7 @@ export function NavUser() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => signOut()}>
               <LogOut />
               Log out
             </DropdownMenuItem>

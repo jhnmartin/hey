@@ -15,7 +15,6 @@ import { useEffect, useState } from "react";
 
 export default function SettingsScreen() {
   const profile = useQuery(api.profiles.get);
-  const seedProfile = useMutation(api.profiles.seed);
   const updateProfile = useMutation(api.profiles.update);
 
   const [name, setName] = useState("");
@@ -25,10 +24,6 @@ export default function SettingsScreen() {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [bio, setBio] = useState("");
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    void seedProfile();
-  }, [seedProfile]);
 
   useEffect(() => {
     if (profile) {

@@ -7,6 +7,7 @@ export default defineSchema({
     isCompleted: v.boolean(),
   }),
   profiles: defineTable({
+    tokenIdentifier: v.string(),
     name: v.string(),
     email: v.string(),
     phone: v.optional(v.string()),
@@ -15,7 +16,7 @@ export default defineSchema({
     city: v.optional(v.string()),
     dateOfBirth: v.optional(v.string()),
     role: v.union(v.literal("attendee"), v.literal("organizer")),
-  }),
+  }).index("by_token", ["tokenIdentifier"]),
   organizations: defineTable({
     name: v.string(),
     role: v.union(

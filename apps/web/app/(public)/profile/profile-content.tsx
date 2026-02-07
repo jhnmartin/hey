@@ -1,8 +1,7 @@
 "use client"
 
-import { useQuery, useMutation } from "convex/react"
+import { useQuery } from "convex/react"
 import { api } from "@repo/backend/convex/_generated/api"
-import { useEffect } from "react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -17,11 +16,6 @@ function getInitials(name: string) {
 
 export function ProfileContent() {
   const profile = useQuery(api.profiles.get)
-  const seed = useMutation(api.profiles.seed)
-
-  useEffect(() => {
-    void seed()
-  }, [seed])
 
   if (profile === undefined) {
     return (

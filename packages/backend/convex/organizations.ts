@@ -11,19 +11,43 @@ export const create = mutation({
     ),
     email: v.string(),
     avatarUrl: v.optional(v.string()),
-    ownerId: v.id("profiles"),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("organizations", args);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!profile) throw new Error("Profile not found");
+
+    return await ctx.db.insert("organizations", {
+      ...args,
+      ownerId: profile._id,
+    });
   },
 });
 
 export const listByOwner = query({
-  args: { ownerId: v.id("profiles") },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!profile) return [];
+
     return await ctx.db
       .query("organizations")
-      .withIndex("by_owner", (q) => q.eq("ownerId", args.ownerId))
+      .withIndex("by_owner", (q) => q.eq("ownerId", profile._id))
       .collect();
   },
 });
@@ -50,6 +74,22 @@ export const update = mutation({
     avatarUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!profile) throw new Error("Profile not found");
+
+    const org = await ctx.db.get(args.id);
+    if (!org || org.ownerId !== profile._id) {
+      throw new Error("Unauthorized");
+    }
+
     const { id, ...fields } = args;
     const updates: Record<string, string> = {};
     for (const [key, value] of Object.entries(fields)) {

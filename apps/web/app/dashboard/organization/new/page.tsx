@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useMutation, useQuery } from "convex/react"
+import { useMutation } from "convex/react"
 import { api } from "@repo/backend/convex/_generated/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,7 +19,6 @@ type OrgRole = "venue" | "performer" | "promoter"
 
 export default function NewOrganizationPage() {
   const router = useRouter()
-  const profile = useQuery(api.profiles.get)
   const createOrg = useMutation(api.organizations.create)
 
   const [name, setName] = useState("")
@@ -30,13 +29,11 @@ export default function NewOrganizationPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!profile) return
     setSaving(true)
     await createOrg({
       name,
       role,
       email,
-      ownerId: profile._id,
       ...(avatarUrl ? { avatarUrl } : {}),
     })
     router.push("/dashboard")
@@ -90,7 +87,7 @@ export default function NewOrganizationPage() {
               className="mt-1"
             />
           </div>
-          <Button type="submit" disabled={saving || !profile}>
+          <Button type="submit" disabled={saving}>
             {saving ? "Creating..." : "Create Organization"}
           </Button>
         </div>

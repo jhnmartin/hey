@@ -79,6 +79,10 @@ cd apps/mobile-pro && npx expo start -c --port 8082
 
 ## Key Technical Decisions
 
+### IMPORTANT: Next.js 16 — `proxy.ts` not `middleware.ts`
+- Next.js 16 renamed `middleware.ts` to `proxy.ts`. The file lives at `apps/web/proxy.ts`.
+- Do NOT create or rename it to `middleware.ts` — that is the old convention and will not work.
+
 ### Web: Tailwind v4 + shadcn/ui (New York style)
 - CSS imports must use relative paths for pnpm: `@import "../node_modules/tw-animate-css/dist/tw-animate.css"` (bare module imports fail with Turbopack)
 - All base resets must be inside `@layer base` — unlayered CSS overrides Tailwind utility classes in v4
