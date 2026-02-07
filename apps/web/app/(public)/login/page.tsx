@@ -14,6 +14,15 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
+  const signInWith = (strategy: "oauth_google" | "oauth_apple") => {
+    if (!isLoaded) return
+    signIn.authenticateWithRedirect({
+      strategy,
+      redirectUrl: "/sso-callback",
+      redirectUrlComplete: "/auth-callback",
+    })
+  }
+
   const onSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault()
@@ -77,6 +86,30 @@ export default function LoginPage() {
           className="bg-primary text-primary-foreground flex h-10 w-full items-center justify-center rounded-md text-sm font-medium disabled:opacity-50"
         >
           {loading ? "Signing in..." : "Log In"}
+        </button>
+
+        <div className="relative my-2">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background text-muted-foreground px-2">or</span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => signInWith("oauth_google")}
+          className="border-border flex h-10 w-full items-center justify-center gap-2 rounded-md border text-sm font-medium"
+        >
+          Continue with Google
+        </button>
+        <button
+          type="button"
+          onClick={() => signInWith("oauth_apple")}
+          className="border-border flex h-10 w-full items-center justify-center gap-2 rounded-md border text-sm font-medium"
+        >
+          Continue with Apple
         </button>
       </form>
 
