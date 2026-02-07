@@ -1,41 +1,52 @@
 "use client"
 
-import { createContext, useContext, useState } from "react"
+import { createContext, useContext, useState, useEffect } from "react"
 import type { ReactNode } from "react"
-import { AudioWaveform, GalleryVerticalEnd } from "lucide-react"
+import { useQuery } from "convex/react"
+import { api } from "@repo/backend/convex/_generated/api"
+import type { FunctionReturnType } from "convex/server"
+import { Building2, Music, Megaphone } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
-export type Org = {
-  name: string
-  logo: LucideIcon
-  plan: string
+export type Org = NonNullable<
+  FunctionReturnType<typeof api.organizations.get>
+>
+
+export type OrgRole = Org["role"]
+
+export const orgRoleIcons: Record<OrgRole, LucideIcon> = {
+  venue: Building2,
+  performer: Music,
+  promoter: Megaphone,
 }
 
-export const orgs: Org[] = [
-  {
-    name: "hey thursday",
-    logo: GalleryVerticalEnd,
-    plan: "Pro",
-  },
-  {
-    name: "Neon Events Co",
-    logo: AudioWaveform,
-    plan: "Starter",
-  },
-]
-
 type OrgContextValue = {
-  activeOrg: Org
+  orgs: Org[]
+  activeOrg: Org | null
   setActiveOrg: (org: Org) => void
 }
 
 const OrgContext = createContext<OrgContextValue | null>(null)
 
 export function OrgProvider({ children }: { children: ReactNode }) {
-  const [activeOrg, setActiveOrg] = useState<Org>(orgs[0]!)
+  const profile = useQuery(api.profiles.get)
+  const orgs = useQuery(
+    api.organizations.listByOwner,
+    profile ? { ownerId: profile._id } : "skip",
+  )
+
+  const [activeOrg, setActiveOrg] = useState<Org | null>(null)
+
+  useEffect(() => {
+    if (orgs && orgs.length > 0 && !activeOrg) {
+      setActiveOrg(orgs[0]!)
+    }
+  }, [orgs, activeOrg])
 
   return (
-    <OrgContext.Provider value={{ activeOrg, setActiveOrg }}>
+    <OrgContext.Provider
+      value={{ orgs: orgs ?? [], activeOrg, setActiveOrg }}
+    >
       {children}
     </OrgContext.Provider>
   )

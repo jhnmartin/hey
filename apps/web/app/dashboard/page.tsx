@@ -24,8 +24,8 @@ const orgActivity: Record<string, string[]> = {
 
 export default function DashboardPage() {
   const { activeOrg } = useOrg()
-  const stats = orgStats[activeOrg.name] ?? orgStats["hey thursday"]!
-  const activity = orgActivity[activeOrg.name] ?? orgActivity["hey thursday"]!
+  const stats = (activeOrg ? orgStats[activeOrg.name] : null) ?? orgStats["hey thursday"]!
+  const activity = (activeOrg ? orgActivity[activeOrg.name] : null) ?? orgActivity["hey thursday"]!
 
   return (
     <>

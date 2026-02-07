@@ -16,4 +16,15 @@ export default defineSchema({
     dateOfBirth: v.optional(v.string()),
     role: v.union(v.literal("attendee"), v.literal("organizer")),
   }),
+  organizations: defineTable({
+    name: v.string(),
+    role: v.union(
+      v.literal("venue"),
+      v.literal("performer"),
+      v.literal("promoter"),
+    ),
+    email: v.string(),
+    avatarUrl: v.optional(v.string()),
+    ownerId: v.id("profiles"),
+  }).index("by_owner", ["ownerId"]),
 });

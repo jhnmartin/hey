@@ -19,11 +19,11 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { orgs, useOrg } from "@/components/org-context"
+import { useOrg, orgRoleIcons } from "@/components/org-context"
 
 export function TeamSwitcher() {
   const { isMobile } = useSidebar()
-  const { activeOrg, setActiveOrg } = useOrg()
+  const { orgs, activeOrg, setActiveOrg } = useOrg()
 
   return (
     <SidebarMenu>
@@ -34,13 +34,30 @@ export function TeamSwitcher() {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                <activeOrg.logo className="size-4" />
-              </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{activeOrg.name}</span>
-                <span className="truncate text-xs">{activeOrg.plan}</span>
-              </div>
+              {activeOrg ? (
+                <>
+                  <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                    {React.createElement(orgRoleIcons[activeOrg.role]!, {
+                      className: "size-4",
+                    })}
+                  </div>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-medium">
+                      {activeOrg.name}
+                    </span>
+                    <span className="truncate text-xs capitalize">
+                      {activeOrg.role}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="text-muted-foreground truncate font-medium">
+                    No organization
+                  </span>
+                  <span className="truncate text-xs">Create one below</span>
+                </div>
+              )}
               <ChevronsUpDown className="ml-auto" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
@@ -53,37 +70,44 @@ export function TeamSwitcher() {
             <DropdownMenuLabel className="text-muted-foreground text-xs">
               Organizations
             </DropdownMenuLabel>
-            {orgs.map((org, index) => (
-              <DropdownMenuItem
-                key={org.name}
-                onClick={() => setActiveOrg(org)}
-                className="gap-2 p-2"
-              >
-                <div className="flex size-6 items-center justify-center rounded-md border">
-                  <org.logo className="size-3.5 shrink-0" />
-                </div>
-                {org.name}
-                <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
-              </DropdownMenuItem>
-            ))}
+            {orgs.map((org, index) => {
+              const Icon = orgRoleIcons[org.role]!
+              return (
+                <DropdownMenuItem
+                  key={org._id}
+                  onClick={() => setActiveOrg(org)}
+                  className="gap-2 p-2"
+                >
+                  <div className="flex size-6 items-center justify-center rounded-md border">
+                    <Icon className="size-3.5 shrink-0" />
+                  </div>
+                  {org.name}
+                  <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
+                </DropdownMenuItem>
+              )
+            })}
             <DropdownMenuSeparator />
+            {activeOrg && (
+              <DropdownMenuItem asChild className="gap-2 p-2">
+                <Link href="/dashboard/organization">
+                  <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
+                    <Settings className="size-4" />
+                  </div>
+                  <div className="text-muted-foreground font-medium">
+                    Manage Organization
+                  </div>
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem asChild className="gap-2 p-2">
-              <Link href="/dashboard/organization">
+              <Link href="/dashboard/organization/new">
                 <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
-                  <Settings className="size-4" />
+                  <Plus className="size-4" />
                 </div>
                 <div className="text-muted-foreground font-medium">
-                  Manage Organization
+                  Add organization
                 </div>
               </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem className="gap-2 p-2">
-              <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
-                <Plus className="size-4" />
-              </div>
-              <div className="text-muted-foreground font-medium">
-                Add organization
-              </div>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

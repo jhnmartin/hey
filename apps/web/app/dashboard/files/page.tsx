@@ -56,7 +56,7 @@ const allFiles = [
 
 export default function FilesPage() {
   const { activeOrg } = useOrg()
-  const files = allFiles.filter((f) => f.org === activeOrg.name)
+  const files = allFiles.filter((f) => f.org === activeOrg?.name)
 
   return (
     <>
