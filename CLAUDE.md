@@ -1,6 +1,45 @@
 # Hey Thursday
 
-Event discovery and management platform with attendee and organizer apps.
+Nightlife and live events platform connecting event-goers with organizers, venues, artists, and promoters.
+
+## Overview
+
+**For Attendees (mobile app):**
+- Discover events nearby via geolocation/geofencing, or search other areas
+- Bookmark, RSVP, and purchase tickets
+- **Passport** — a universal scannable identity that holds tickets, tracks attendance, and acts as a loyalty card across venues and events. Venues scan attendees in, building a shared profile of engagement over time.
+
+**For Organizers (web dashboard + pro app):**
+- Create and manage events for public discovery and ticketing
+- Invite collaborating organizations (venues, promoters, artists, production teams) with scoped access per event
+- Built-in collaboration tools: file management (Dropbox-style), task boards (Trello-style), team messaging (Slack-style), AI chat and auto-completions
+- Marketing tools: email, SMS, and push notifications powered by platform audience data, with options to boost events via Hey Thursday's internal channels
+
+**Organizations & Collaboration:**
+- Venues, promoters, artists, and their teams each have organization profiles
+- Multiple orgs can collaborate on a single event with permission-based access
+- Eliminates repetitive back-and-forth (hospitality riders, tech riders, day sheets, ticket splits, load-in times)
+- Pro-side discovery: artists can post tour availability, venues can find and book acts
+
+**Monetization:**
+- Tiered subscriptions: Starter (free), Hobby, Pro
+- Marketing services baked into subscription tiers with paid boost options
+
+**Long-term vision:** Expand from nightlife into tour management, artist management, booking agency tools, and label services — becoming the all-in-one platform for live events.
+
+## Workflow
+
+Every session is one of three modes. Declare your mode at the start.
+
+| Mode | Purpose | Rule |
+|------|---------|------|
+| **Feature** | Build new functionality | Make it work. Don't style it, don't optimize it. |
+| **Enhancement** | UX/UI polish, design, performance | Improve what exists. Don't add new functionality. |
+| **Bug Fix** | Something is broken | Fix it, nothing more. |
+
+- Stay in scope — a feature session does not become a design session
+- Each mode gets its own branch and its own PR
+- If you discover work outside your current scope, note it for a future session
 
 ## Architecture
 
