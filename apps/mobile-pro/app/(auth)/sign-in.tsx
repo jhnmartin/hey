@@ -172,21 +172,23 @@ export default function SignInScreen() {
         </Text>
       </Pressable>
 
-      <Pressable
-        onPress={() => onOAuth(startApple)}
-        style={{
-          borderWidth: 1,
-          borderColor: "#3f3f46",
-          borderRadius: 8,
-          padding: 14,
-          alignItems: "center",
-          marginBottom: 24,
-        }}
-      >
-        <Text style={{ fontWeight: "500", color: "#d4d4d8" }}>
-          Continue with Apple
-        </Text>
-      </Pressable>
+      {Platform.OS === "ios" && (
+        <Pressable
+          onPress={() => onOAuth(startApple)}
+          style={{
+            borderWidth: 1,
+            borderColor: "#3f3f46",
+            borderRadius: 8,
+            padding: 14,
+            alignItems: "center",
+            marginBottom: 24,
+          }}
+        >
+          <Text style={{ fontWeight: "500", color: "#d4d4d8" }}>
+            Continue with Apple
+          </Text>
+        </Pressable>
+      )}
 
       <Pressable onPress={() => router.push("/(auth)/sign-up")}>
         <Text style={{ textAlign: "center", color: "#a1a1aa" }}>
