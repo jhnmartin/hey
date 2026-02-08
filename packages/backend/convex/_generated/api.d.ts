@@ -8,11 +8,16 @@
  * @module
  */
 
+import type * as eventCollaborators from "../eventCollaborators.js";
+import type * as eventTags from "../eventTags.js";
+import type * as events from "../events.js";
 import type * as invites from "../invites.js";
 import type * as memberships from "../memberships.js";
 import type * as organizations from "../organizations.js";
 import type * as profiles from "../profiles.js";
+import type * as storage from "../storage.js";
 import type * as tasks from "../tasks.js";
+import type * as ticketTypes from "../ticketTypes.js";
 
 import type {
   ApiFromModules,
@@ -21,11 +26,16 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  eventCollaborators: typeof eventCollaborators;
+  eventTags: typeof eventTags;
+  events: typeof events;
   invites: typeof invites;
   memberships: typeof memberships;
   organizations: typeof organizations;
   profiles: typeof profiles;
+  storage: typeof storage;
   tasks: typeof tasks;
+  ticketTypes: typeof ticketTypes;
 }>;
 
 /**

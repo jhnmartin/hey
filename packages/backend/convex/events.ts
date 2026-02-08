@@ -1,0 +1,230 @@
+import { query, mutation } from "./_generated/server";
+import { v } from "convex/values";
+
+export const create = mutation({
+  args: {
+    name: v.string(),
+    tagline: v.optional(v.string()),
+    description: v.optional(v.string()),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+    doorsOpen: v.optional(v.number()),
+    venues: v.optional(v.array(v.object({
+      name: v.string(),
+      address: v.optional(v.string()),
+      city: v.optional(v.string()),
+      state: v.optional(v.string()),
+      zip: v.optional(v.string()),
+    }))),
+    coverImageId: v.optional(v.id("_storage")),
+    status: v.union(
+      v.literal("draft"),
+      v.literal("published"),
+    ),
+    visibility: v.union(v.literal("public"), v.literal("private")),
+    tags: v.optional(v.array(v.string())),
+    ageRestriction: v.union(
+      v.literal("all_ages"),
+      v.literal("18_plus"),
+      v.literal("21_plus"),
+    ),
+    capacity: v.optional(v.number()),
+    ownerOrgId: v.id("organizations"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!profile) throw new Error("Profile not found");
+
+    // Verify membership in the org
+    const membership = await ctx.db
+      .query("memberships")
+      .withIndex("by_profile_org", (q) =>
+        q.eq("profileId", profile._id).eq("orgId", args.ownerOrgId),
+      )
+      .unique();
+    if (!membership) throw new Error("Not a member of this organization");
+
+    const eventId = await ctx.db.insert("events", {
+      ...args,
+      lifecycle: "upcoming",
+      createdBy: profile._id,
+    });
+
+    return eventId;
+  },
+});
+
+export const get = query({
+  args: { id: v.id("events") },
+  handler: async (ctx, args) => {
+    const event = await ctx.db.get(args.id);
+    if (!event) return null;
+
+    let coverImageUrl: string | null = null;
+    if (event.coverImageId) {
+      coverImageUrl = await ctx.storage.getUrl(event.coverImageId);
+    }
+
+    return { ...event, coverImageUrl };
+  },
+});
+
+export const listByOrg = query({
+  args: { orgId: v.id("organizations") },
+  handler: async (ctx, args) => {
+    const events = await ctx.db
+      .query("events")
+      .withIndex("by_org", (q) => q.eq("ownerOrgId", args.orgId))
+      .collect();
+
+    return await Promise.all(
+      events.map(async (event) => {
+        let coverImageUrl: string | null = null;
+        if (event.coverImageId) {
+          coverImageUrl = await ctx.storage.getUrl(event.coverImageId);
+        }
+        return { ...event, coverImageUrl };
+      }),
+    );
+  },
+});
+
+export const update = mutation({
+  args: {
+    id: v.id("events"),
+    name: v.optional(v.string()),
+    tagline: v.optional(v.string()),
+    description: v.optional(v.string()),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+    doorsOpen: v.optional(v.number()),
+    venues: v.optional(v.array(v.object({
+      name: v.string(),
+      address: v.optional(v.string()),
+      city: v.optional(v.string()),
+      state: v.optional(v.string()),
+      zip: v.optional(v.string()),
+    }))),
+    coverImageId: v.optional(v.id("_storage")),
+    status: v.optional(
+      v.union(
+        v.literal("draft"),
+        v.literal("published"),
+        v.literal("archived"),
+      ),
+    ),
+    visibility: v.optional(v.union(v.literal("public"), v.literal("private"))),
+    tags: v.optional(v.array(v.string())),
+    ageRestriction: v.optional(
+      v.union(
+        v.literal("all_ages"),
+        v.literal("18_plus"),
+        v.literal("21_plus"),
+      ),
+    ),
+    capacity: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!profile) throw new Error("Profile not found");
+
+    const event = await ctx.db.get(args.id);
+    if (!event) throw new Error("Event not found");
+
+    // Verify membership in the event's org
+    const membership = await ctx.db
+      .query("memberships")
+      .withIndex("by_profile_org", (q) =>
+        q.eq("profileId", profile._id).eq("orgId", event.ownerOrgId),
+      )
+      .unique();
+    if (!membership) throw new Error("Not a member of this organization");
+
+    const { id, ...fields } = args;
+    const updates: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(fields)) {
+      if (value !== undefined) {
+        updates[key] = value;
+      }
+    }
+    await ctx.db.patch(id, updates);
+  },
+});
+
+export const publish = mutation({
+  args: { id: v.id("events") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!profile) throw new Error("Profile not found");
+
+    const event = await ctx.db.get(args.id);
+    if (!event) throw new Error("Event not found");
+
+    const membership = await ctx.db
+      .query("memberships")
+      .withIndex("by_profile_org", (q) =>
+        q.eq("profileId", profile._id).eq("orgId", event.ownerOrgId),
+      )
+      .unique();
+    if (!membership) throw new Error("Not a member of this organization");
+
+    // Enforce required fields for publishing
+    if (!event.startDate) throw new Error("Start date is required to publish");
+    if (!event.venues || event.venues.length === 0) throw new Error("At least one venue is required to publish");
+
+    await ctx.db.patch(args.id, { status: "published" });
+  },
+});
+
+export const archive = mutation({
+  args: { id: v.id("events") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!profile) throw new Error("Profile not found");
+
+    const event = await ctx.db.get(args.id);
+    if (!event) throw new Error("Event not found");
+
+    const membership = await ctx.db
+      .query("memberships")
+      .withIndex("by_profile_org", (q) =>
+        q.eq("profileId", profile._id).eq("orgId", event.ownerOrgId),
+      )
+      .unique();
+    if (!membership) throw new Error("Not a member of this organization");
+
+    await ctx.db.patch(args.id, { status: "archived" });
+  },
+});
