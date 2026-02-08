@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@repo/backend/convex/_generated/api"
 import { Button } from "@/components/ui/button"
-import type { Id } from "@repo/backend/convex/_generated/dataModel"
+
+type PendingInviteItem = NonNullable<
+  ReturnType<typeof useQuery<typeof api.invites.listPendingForEmail>>
+>[number]
 
 export default function OnboardingInvitesPage() {
   const router = useRouter()
@@ -59,7 +62,7 @@ export default function OnboardingInvitesPage() {
   const hasAccepted = accepted.size > 0
 
   async function handleAccept(
-    inviteId: Id<"invites">,
+    inviteId: PendingInviteItem["invite"]["_id"],
     orgId: string,
     orgName: string,
   ) {
@@ -74,7 +77,7 @@ export default function OnboardingInvitesPage() {
     })
   }
 
-  async function handleDecline(inviteId: Id<"invites">) {
+  async function handleDecline(inviteId: PendingInviteItem["invite"]["_id"]) {
     setResolving((s) => new Set(s).add(inviteId))
     await declineInvite({ inviteId })
     setDeclined((s) => new Set(s).add(inviteId))
