@@ -30,6 +30,15 @@ export const create = mutation({
     ),
     capacity: v.optional(v.number()),
     ownerOrgId: v.id("organizations"),
+    eventType: v.optional(v.union(
+      v.literal("one_off"),
+      v.literal("recurring"),
+      v.literal("tour"),
+      v.literal("multi_location"),
+    )),
+    seriesId: v.optional(v.id("eventSeries")),
+    seriesOrder: v.optional(v.number()),
+    isFreeEvent: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -131,6 +140,13 @@ export const update = mutation({
       ),
     ),
     capacity: v.optional(v.number()),
+    eventType: v.optional(v.union(
+      v.literal("one_off"),
+      v.literal("recurring"),
+      v.literal("tour"),
+      v.literal("multi_location"),
+    )),
+    isFreeEvent: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -193,8 +209,11 @@ export const publish = mutation({
     if (!membership) throw new Error("Not a member of this organization");
 
     // Enforce required fields for publishing
+    // Series events (tour/recurring/multi-location) may not require venues at creation time
     if (!event.startDate) throw new Error("Start date is required to publish");
-    if (!event.venues || event.venues.length === 0) throw new Error("At least one venue is required to publish");
+    if (!event.seriesId && (!event.venues || event.venues.length === 0)) {
+      throw new Error("At least one venue is required to publish");
+    }
 
     await ctx.db.patch(args.id, { status: "published" });
   },

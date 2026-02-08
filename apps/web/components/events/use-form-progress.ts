@@ -1,28 +1,65 @@
 import { useWatch } from "react-hook-form"
 import type { EventFormValues } from "./event-form-schema"
 
-// Static fields that count toward progress when filled.
-// Each is a key of EventFormValues and a predicate to check if it's "filled".
-const STATIC_FIELDS: { key: keyof EventFormValues; filled: (v: any) => boolean }[] = [
-  // Step 1: Basics
-  { key: "name", filled: (v) => typeof v === "string" && v.length > 0 },
-  { key: "tagline", filled: (v) => typeof v === "string" && v.length > 0 },
-  { key: "description", filled: (v) => typeof v === "string" && v.length > 0 },
-  { key: "tags", filled: (v) => Array.isArray(v) && v.length > 0 },
+type FieldCheck = { key: keyof EventFormValues; filled: (v: any) => boolean }
+
+const isNonEmpty = (v: any) => typeof v === "string" && v.length > 0
+const isArrayFilled = (v: any) => Array.isArray(v) && v.length > 0
+
+// Shared fields that always count
+const SHARED_FIELDS: FieldCheck[] = [
+  { key: "name", filled: isNonEmpty },
+  { key: "tagline", filled: isNonEmpty },
+  { key: "description", filled: isNonEmpty },
+  { key: "tags", filled: isArrayFilled },
   { key: "coverImageId", filled: (v) => v != null && v !== "" },
-  // Step 2: Date & Location
-  { key: "startDate", filled: (v) => typeof v === "string" && v.length > 0 },
-  { key: "startTime", filled: (v) => typeof v === "string" && v.length > 0 },
-  { key: "endDate", filled: (v) => typeof v === "string" && v.length > 0 },
-  { key: "endTime", filled: (v) => typeof v === "string" && v.length > 0 },
-  { key: "doorsOpenDate", filled: (v) => typeof v === "string" && v.length > 0 },
-  { key: "doorsOpenTime", filled: (v) => typeof v === "string" && v.length > 0 },
-  { key: "venues", filled: (v) => Array.isArray(v) && v.length > 0 },
-  // Step 4: Settings — capacity (visibility always has a value via default)
+]
+
+// One-off specific fields
+const ONE_OFF_FIELDS: FieldCheck[] = [
+  { key: "startDate", filled: isNonEmpty },
+  { key: "startTime", filled: isNonEmpty },
+  { key: "endDate", filled: isNonEmpty },
+  { key: "endTime", filled: isNonEmpty },
+  { key: "venues", filled: isArrayFilled },
   { key: "capacity", filled: (v) => v !== "" && v !== undefined && v > 0 },
 ]
 
-// Per ticket type: name and quantity always count, price counts when not a free event.
+// Recurring specific fields
+const RECURRING_FIELDS: FieldCheck[] = [
+  { key: "recurrenceFrequency", filled: isNonEmpty },
+  { key: "seriesStartDate", filled: isNonEmpty },
+  { key: "recurrenceStartTime", filled: isNonEmpty },
+  { key: "recurrenceEndTime", filled: isNonEmpty },
+  { key: "generateCount", filled: (v) => v !== undefined && v > 0 },
+  { key: "venues", filled: isArrayFilled },
+]
+
+// Tour specific
+const TOUR_FIELDS: FieldCheck[] = [
+  { key: "tourStops", filled: (v) => Array.isArray(v) && v.filter((s: any) => s.date || s.venue).length >= 2 },
+]
+
+// Multi-location specific
+const MULTI_LOCATION_FIELDS: FieldCheck[] = [
+  { key: "multiStartDate", filled: isNonEmpty },
+  { key: "multiStartTime", filled: isNonEmpty },
+  { key: "multiLocations", filled: (v) => Array.isArray(v) && v.filter((l: any) => l.venue).length >= 2 },
+]
+
+function getFieldsForType(eventType: string): FieldCheck[] {
+  switch (eventType) {
+    case "recurring":
+      return [...SHARED_FIELDS, ...RECURRING_FIELDS]
+    case "tour":
+      return [...SHARED_FIELDS, ...TOUR_FIELDS]
+    case "multi_location":
+      return [...SHARED_FIELDS, ...MULTI_LOCATION_FIELDS]
+    default:
+      return [...SHARED_FIELDS, ...ONE_OFF_FIELDS]
+  }
+}
+
 function countTicketFields(
   tickets: EventFormValues["ticketTypes"],
   isFree: boolean,
@@ -31,15 +68,12 @@ function countTicketFields(
   let filled = 0
 
   for (const t of tickets) {
-    // name
     total++
     if (t.name.length > 0) filled++
 
-    // quantity
     total++
     if (t.quantity > 0) filled++
 
-    // price (only when not free)
     if (!isFree) {
       total++
       if (t.price > 0) filled++
@@ -52,10 +86,13 @@ function countTicketFields(
 export function useFormProgress(): number {
   const values = useWatch<EventFormValues>()
 
-  let total = STATIC_FIELDS.length
+  const eventType = (values.eventType ?? "one_off") as string
+  const staticFields = getFieldsForType(eventType)
+
+  let total = staticFields.length
   let filled = 0
 
-  for (const f of STATIC_FIELDS) {
+  for (const f of staticFields) {
     if (f.filled(values[f.key])) filled++
   }
 

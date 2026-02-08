@@ -4,8 +4,6 @@ import { useFormContext, useFieldArray } from "react-hook-form"
 import type { EventFormValues } from "./event-form-schema"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
 import {
   FormField,
   FormItem,
@@ -13,13 +11,6 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { IconPlus, IconTrash } from "@tabler/icons-react"
 
 function Hint({ children }: { children: React.ReactNode }) {
@@ -33,6 +24,8 @@ function Hint({ children }: { children: React.ReactNode }) {
 export function StepTickets() {
   const form = useFormContext<EventFormValues>()
   const isFree = form.watch("isFreeEvent")
+  const eventType = form.watch("eventType")
+  const isSeriesType = eventType === "recurring" || eventType === "tour" || eventType === "multi_location"
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -41,26 +34,13 @@ export function StepTickets() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start gap-3">
-        <Switch
-          id="isFreeEvent"
-          className="mt-0.5"
-          checked={isFree}
-          onCheckedChange={(checked) => {
-            form.setValue("isFreeEvent", checked)
-            if (checked) {
-              const tickets = form.getValues("ticketTypes")
-              tickets.forEach((_, i) => {
-                form.setValue(`ticketTypes.${i}.price`, 0)
-              })
-            }
-          }}
-        />
-        <div>
-          <Label htmlFor="isFreeEvent">Free event</Label>
-          <Hint>No charge — you can still limit capacity per ticket type.</Hint>
+      {isSeriesType && (
+        <div className="bg-muted/30 rounded-lg border p-3">
+          <p className="text-muted-foreground text-sm">
+            These tickets will be applied to each occurrence. Each event gets its own ticket pool with independent sold counts.
+          </p>
         </div>
-      </div>
+      )}
 
       <div className="space-y-3">
         {fields.map((field, index) => (
@@ -178,30 +158,6 @@ export function StepTickets() {
         <IconPlus className="mr-1.5 size-3.5" />
         Add Ticket Type
       </Button>
-
-      <FormField
-        control={form.control}
-        name="ageRestriction"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Age Restriction</FormLabel>
-            <Hint>Shown on the listing and enforced at check-in.</Hint>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
-              <FormControl>
-                <SelectTrigger className="w-full max-w-xs">
-                  <SelectValue />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem value="all_ages">All Ages</SelectItem>
-                <SelectItem value="18_plus">18+</SelectItem>
-                <SelectItem value="21_plus">21+</SelectItem>
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
     </div>
   )
 }
