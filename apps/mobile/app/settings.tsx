@@ -125,7 +125,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#fff1ee" },
   content: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40 },
   sectionTitle: { fontSize: 20, fontWeight: "bold", color: "#000", marginBottom: 16 },
   label: { fontSize: 14, fontWeight: "500", color: "#374151", marginTop: 12 },

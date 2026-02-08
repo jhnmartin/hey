@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { ChevronsUpDown, Plus, Settings } from "lucide-react"
+import { IconSelector, IconPlus, IconSettings } from "@tabler/icons-react"
 
 import {
   DropdownMenu,
@@ -58,7 +58,7 @@ export function TeamSwitcher() {
                   <span className="truncate text-xs">Create one below</span>
                 </div>
               )}
-              <ChevronsUpDown className="ml-auto" />
+              <IconSelector className="ml-auto" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -91,7 +91,7 @@ export function TeamSwitcher() {
               <DropdownMenuItem asChild className="gap-2 p-2">
                 <Link href="/dashboard/organization">
                   <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
-                    <Settings className="size-4" />
+                    <IconSettings className="size-4" />
                   </div>
                   <div className="text-muted-foreground font-medium">
                     Manage Organization
@@ -102,7 +102,7 @@ export function TeamSwitcher() {
             <DropdownMenuItem asChild className="gap-2 p-2">
               <Link href="/dashboard/organization/new">
                 <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
-                  <Plus className="size-4" />
+                  <IconPlus className="size-4" />
                 </div>
                 <div className="text-muted-foreground font-medium">
                   Add organization

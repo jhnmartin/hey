@@ -23,7 +23,7 @@ function EventCard({ title, date, venue, color }: typeof EVENTS[number]) {
 
 export default function EventsScreen() {
   return (
-    <View className="flex-1 bg-white pt-4">
+    <View className="flex-1 bg-background pt-4">
       <Text className="px-6 text-2xl font-bold text-black">
         Discover Events
       </Text>

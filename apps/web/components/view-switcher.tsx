@@ -2,7 +2,7 @@
 
 import { useQuery } from "convex/react"
 import { api } from "@repo/backend/convex/_generated/api"
-import { ArrowRightLeft } from "lucide-react"
+import { IconArrowsRightLeft } from "@tabler/icons-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -31,7 +31,7 @@ export function ViewSwitcher() {
             href={isDashboard ? "/events" : "/dashboard"}
             className="fixed right-3 bottom-3 z-50 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
           >
-            <ArrowRightLeft className="size-4" />
+            <IconArrowsRightLeft className="size-4" />
           </Link>
         </TooltipTrigger>
         <TooltipContent side="top" align="end">

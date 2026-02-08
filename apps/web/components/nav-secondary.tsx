@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import type { LucideIcon } from "lucide-react"
+import type { Icon } from "@tabler/icons-react"
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -16,7 +16,7 @@ export function NavSecondary({
   items: {
     title: string
     url: string
-    icon: LucideIcon
+    icon: Icon
   }[]
 }) {
   return (

@@ -30,17 +30,17 @@ function HeaderLeft() {
             width: 32,
             height: 32,
             borderRadius: 16,
-            backgroundColor: "#27272a",
+            backgroundColor: "#322a29",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>
+          <Text style={{ color: "#e1dfd3", fontWeight: "700", fontSize: 14 }}>
             {activeOrg ? activeOrg.name.charAt(0).toUpperCase() : "?"}
           </Text>
         </View>
       )}
-      <Text style={{ color: "#fff", fontWeight: "700", fontSize: 18 }}>
+      <Text style={{ color: "#e1dfd3", fontWeight: "700", fontSize: 18 }}>
         {activeOrg?.name ?? "Select Org"}
       </Text>
     </Pressable>
@@ -67,12 +67,12 @@ function HeaderRight() {
             width: 32,
             height: 32,
             borderRadius: 16,
-            backgroundColor: "#3f3f46",
+            backgroundColor: "#322a29",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Text style={{ color: "#fff", fontWeight: "600", fontSize: 14 }}>
+          <Text style={{ color: "#e1dfd3", fontWeight: "600", fontSize: 14 }}>
             {profile ? profile.name.charAt(0).toUpperCase() : ""}
           </Text>
         </View>
@@ -85,14 +85,14 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#fff",
-        tabBarInactiveTintColor: "#71717a",
+        tabBarActiveTintColor: "#fb5536",
+        tabBarInactiveTintColor: "#9b978f",
         tabBarStyle: {
-          backgroundColor: "#18181b",
-          borderTopColor: "#27272a",
+          backgroundColor: "#1c1615",
+          borderTopColor: "#322a29",
         },
-        headerStyle: { backgroundColor: "#000" },
-        headerTintColor: "#fff",
+        headerStyle: { backgroundColor: "#1c1615" },
+        headerTintColor: "#e1dfd3",
         headerTitle: "",
         headerLeft: () => <HeaderLeft />,
         headerRight: () => <HeaderRight />,

@@ -17,11 +17,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
-  Bookmark,
-  LogOut,
-  Settings,
-  User,
-} from "lucide-react"
+  IconBookmark,
+  IconLogout,
+  IconSettings,
+  IconUser,
+} from "@tabler/icons-react"
 
 function getInitials(name: string) {
   return name
@@ -72,25 +72,25 @@ export function PublicNavUser() {
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem asChild>
           <Link href="/profile">
-            <User className="mr-2 size-4" />
+            <IconUser className="mr-2 size-4" />
             Profile
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/my-events">
-            <Bookmark className="mr-2 size-4" />
+            <IconBookmark className="mr-2 size-4" />
             My Events
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/settings">
-            <Settings className="mr-2 size-4" />
+            <IconSettings className="mr-2 size-4" />
             Settings
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => signOut()}>
-          <LogOut className="mr-2 size-4" />
+          <IconLogout className="mr-2 size-4" />
           Log out
         </DropdownMenuItem>
       </DropdownMenuContent>

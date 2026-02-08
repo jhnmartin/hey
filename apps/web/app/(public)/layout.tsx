@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { PublicNavUser } from "@/components/public-nav-user"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export default function PublicLayout({
   children,
@@ -26,6 +27,7 @@ export default function PublicLayout({
             >
               My Tickets
             </Link>
+            <ThemeToggle />
             <PublicNavUser />
           </div>
         </nav>

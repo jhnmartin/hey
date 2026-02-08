@@ -84,7 +84,7 @@ export default function SignUpScreen() {
         justifyContent: "center",
         padding: 24,
       }}
-      style={{ backgroundColor: "#fff" }}
+      style={{ backgroundColor: "#fff1ee" }}
     >
       <Text style={{ fontSize: 28, fontWeight: "700", marginBottom: 8 }}>
         Create your account

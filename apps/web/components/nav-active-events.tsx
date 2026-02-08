@@ -1,6 +1,6 @@
 "use client"
 
-import { Calendar, ChevronRight, Trash2 } from "lucide-react"
+import { IconCalendar, IconChevronRight, IconTrash } from "@tabler/icons-react"
 import Link from "next/link"
 import { useActiveEvents } from "@/components/active-events-context"
 import {
@@ -45,9 +45,9 @@ export function NavActiveEvents() {
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
                 <SidebarMenuButton tooltip={event.name}>
-                  <Calendar className="size-4" />
+                  <IconCalendar className="size-4" />
                   <span className="truncate">{event.name}</span>
-                  <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                  <IconChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                 </SidebarMenuButton>
               </CollapsibleTrigger>
               <SidebarMenuAction
@@ -55,7 +55,7 @@ export function NavActiveEvents() {
                 onClick={() => removeEvent(event.id)}
                 title={`Remove ${event.name}`}
               >
-                <Trash2 className="size-2" />
+                <IconTrash className="size-2" />
               </SidebarMenuAction>
               <CollapsibleContent>
                 <SidebarMenuSub>
