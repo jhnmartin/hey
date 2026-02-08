@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect } from "react"
 import type { ReactNode } from "react"
 import { useQuery } from "convex/react"
+import { useSearchParams } from "next/navigation"
 import { api } from "@repo/backend/convex/_generated/api"
 import type { FunctionReturnType } from "convex/server"
 import { Building2, Music, Megaphone } from "lucide-react"
@@ -29,19 +30,36 @@ type OrgContextValue = {
 const OrgContext = createContext<OrgContextValue | null>(null)
 
 export function OrgProvider({ children }: { children: ReactNode }) {
-  const orgs = useQuery(api.organizations.listByOwner)
+  const membershipsData = useQuery(api.memberships.listByProfile)
+  const searchParams = useSearchParams()
+
+  const orgs: Org[] = (membershipsData ?? []).map((item) => item.org)
 
   const [activeOrg, setActiveOrg] = useState<Org | null>(null)
+  const [initialOrgApplied, setInitialOrgApplied] = useState(false)
 
   useEffect(() => {
-    if (orgs && orgs.length > 0 && !activeOrg) {
+    if (orgs.length === 0 || initialOrgApplied) return
+
+    const orgParam = searchParams.get("org")
+    if (orgParam) {
+      const match = orgs.find((o) => o._id === orgParam)
+      if (match) {
+        setActiveOrg(match)
+        setInitialOrgApplied(true)
+        return
+      }
+    }
+
+    if (!activeOrg) {
       setActiveOrg(orgs[0]!)
     }
-  }, [orgs, activeOrg])
+    setInitialOrgApplied(true)
+  }, [orgs, activeOrg, searchParams, initialOrgApplied])
 
   return (
     <OrgContext.Provider
-      value={{ orgs: orgs ?? [], activeOrg, setActiveOrg }}
+      value={{ orgs, activeOrg, setActiveOrg }}
     >
       {children}
     </OrgContext.Provider>
