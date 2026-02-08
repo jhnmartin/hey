@@ -5,13 +5,13 @@ import { useQuery } from "convex/react"
 import { useClerk } from "@clerk/nextjs"
 import { api } from "@repo/backend/convex/_generated/api"
 import {
-  BadgeCheck,
-  Bell,
-  ChevronsUpDown,
-  CreditCard,
-  LogOut,
-  Sparkles,
-} from "lucide-react"
+  IconRosetteDiscountCheck,
+  IconBell,
+  IconSelector,
+  IconCreditCard,
+  IconLogout,
+  IconSparkles,
+} from "@tabler/icons-react"
 
 import {
   Avatar,
@@ -70,7 +70,7 @@ export function NavUser() {
                 <span className="truncate font-medium">{name}</span>
                 <span className="truncate text-xs">{email}</span>
               </div>
-              <ChevronsUpDown className="ml-auto size-4" />
+              <IconSelector className="ml-auto size-4" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -94,7 +94,7 @@ export function NavUser() {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem>
-                <Sparkles />
+                <IconSparkles />
                 Upgrade to Pro
               </DropdownMenuItem>
             </DropdownMenuGroup>
@@ -102,26 +102,26 @@ export function NavUser() {
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/settings/account">
-                  <BadgeCheck />
+                  <IconRosetteDiscountCheck />
                   Account
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/settings/billing">
-                  <CreditCard />
+                  <IconCreditCard />
                   Billing
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/settings/notifications">
-                  <Bell />
+                  <IconBell />
                   Notifications
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => signOut()}>
-              <LogOut />
+              <IconLogout />
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>

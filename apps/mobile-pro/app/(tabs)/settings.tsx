@@ -8,10 +8,12 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useQuery, useMutation } from "convex/react";
+import { useClerk } from "@clerk/clerk-expo";
 import { api } from "@repo/backend/convex/_generated/api";
 import { StatusBar } from "expo-status-bar";
 
 export default function SettingsScreen() {
+  const { signOut } = useClerk();
   const profile = useQuery(api.profiles.get);
   const updateProfile = useMutation(api.profiles.update);
 
@@ -135,11 +137,18 @@ export default function SettingsScreen() {
         <Pressable
           onPress={handleSave}
           disabled={saving}
-          className="mt-2 mb-8 items-center rounded-xl bg-white py-3"
+          className="mt-2 items-center rounded-xl bg-white py-3"
         >
           <Text className="font-semibold text-black">
             {saving ? "Saving..." : "Save Changes"}
           </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => signOut()}
+          className="mt-4 mb-8 items-center rounded-xl border border-red-500 py-3"
+        >
+          <Text className="font-semibold text-red-500">Log Out</Text>
         </Pressable>
       </ScrollView>
       <StatusBar style="light" />

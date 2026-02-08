@@ -6,8 +6,8 @@ import { useQuery } from "convex/react"
 import { useSearchParams } from "next/navigation"
 import { api } from "@repo/backend/convex/_generated/api"
 import type { FunctionReturnType } from "convex/server"
-import { Building2, Music, Megaphone } from "lucide-react"
-import type { LucideIcon } from "lucide-react"
+import { IconBuilding, IconMusic, IconSpeakerphone } from "@tabler/icons-react"
+import type { Icon } from "@tabler/icons-react"
 
 export type Org = NonNullable<
   FunctionReturnType<typeof api.organizations.get>
@@ -15,10 +15,10 @@ export type Org = NonNullable<
 
 export type OrgRole = Org["role"]
 
-export const orgRoleIcons: Record<OrgRole, LucideIcon> = {
-  venue: Building2,
-  performer: Music,
-  promoter: Megaphone,
+export const orgRoleIcons: Record<OrgRole, Icon> = {
+  venue: IconBuilding,
+  performer: IconMusic,
+  promoter: IconSpeakerphone,
 }
 
 type OrgContextValue = {

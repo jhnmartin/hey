@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import ConvexClientProvider from "./ConvexClientProvider";
+import { ThemeProvider } from "@/components/theme-provider";
 import { ViewSwitcher } from "@/components/view-switcher";
 
 const geistSans = localFont({
@@ -61,12 +62,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <ConvexClientProvider>
-          {children}
-          <ViewSwitcher />
-        </ConvexClientProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ConvexClientProvider>
+            {children}
+            <ViewSwitcher />
+          </ConvexClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

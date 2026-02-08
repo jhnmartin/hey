@@ -23,7 +23,7 @@ export default function PassportScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", paddingHorizontal: 24, paddingTop: 16 },
+  container: { flex: 1, backgroundColor: "#fff1ee", paddingHorizontal: 24, paddingTop: 16 },
   title: { fontSize: 24, fontWeight: "bold", color: "#000" },
   qrPlaceholder: {
     marginTop: 24, alignItems: "center", justifyContent: "center",

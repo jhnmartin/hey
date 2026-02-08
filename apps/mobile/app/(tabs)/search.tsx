@@ -15,7 +15,7 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", paddingHorizontal: 24, paddingTop: 16 },
+  container: { flex: 1, backgroundColor: "#fff1ee", paddingHorizontal: 24, paddingTop: 16 },
   title: { fontSize: 24, fontWeight: "bold", color: "#000" },
   searchBox: { marginTop: 16, borderRadius: 12, backgroundColor: "#f3f4f6", paddingHorizontal: 16, paddingVertical: 12 },
   searchPlaceholder: { fontSize: 16, color: "#9ca3af" },

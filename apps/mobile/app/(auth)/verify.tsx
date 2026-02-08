@@ -42,7 +42,7 @@ export default function VerifyScreen() {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: "#fff1ee" }}>
         <Pressable
           onPress={() => router.back()}
           style={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 8 }}

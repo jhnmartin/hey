@@ -2,17 +2,17 @@
 
 import * as React from "react"
 import {
-  BarChart3,
-  BookOpen,
-  Calendar,
-  FolderOpen,
-  Hash,
-  KanbanSquare,
-  LayoutDashboard,
-  LifeBuoy,
-  Megaphone,
-  Users,
-} from "lucide-react"
+  IconChartBar,
+  IconBook,
+  IconCalendar,
+  IconFolderOpen,
+  IconHash,
+  IconLayoutKanban,
+  IconLayoutDashboard,
+  IconLifebuoy,
+  IconSpeakerphone,
+  IconUsers,
+} from "@tabler/icons-react"
 
 import { NavActiveEvents } from "@/components/nav-active-events"
 import { NavMain } from "@/components/nav-main"
@@ -32,12 +32,12 @@ const data = {
     {
       title: "Dashboard",
       url: "/dashboard",
-      icon: LayoutDashboard,
+      icon: IconLayoutDashboard,
     },
     {
       title: "Events",
       url: "/dashboard/events",
-      icon: Calendar,
+      icon: IconCalendar,
       isActive: true,
       items: [
         {
@@ -53,7 +53,7 @@ const data = {
     {
       title: "Marketing",
       url: "/dashboard/marketing/hey-comms",
-      icon: Megaphone,
+      icon: IconSpeakerphone,
       items: [
         {
           title: "hey comms",
@@ -72,7 +72,7 @@ const data = {
     {
       title: "Channels",
       url: "/dashboard/channels/general",
-      icon: Hash,
+      icon: IconHash,
       items: [
         {
           title: "#general",
@@ -91,34 +91,34 @@ const data = {
     {
       title: "Tasks",
       url: "/dashboard/tasks",
-      icon: KanbanSquare,
+      icon: IconLayoutKanban,
     },
     {
       title: "Files",
       url: "/dashboard/files",
-      icon: FolderOpen,
+      icon: IconFolderOpen,
     },
     {
       title: "Analytics",
       url: "/dashboard/analytics",
-      icon: BarChart3,
+      icon: IconChartBar,
     },
     {
       title: "Team",
       url: "/dashboard/team",
-      icon: Users,
+      icon: IconUsers,
     },
   ],
   secondary: [
     {
       title: "Support",
       url: "/dashboard/support",
-      icon: LifeBuoy,
+      icon: IconLifebuoy,
     },
     {
       title: "Documentation",
       url: "/dashboard/docs",
-      icon: BookOpen,
+      icon: IconBook,
     },
   ],
 }

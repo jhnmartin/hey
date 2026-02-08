@@ -41,7 +41,7 @@ export default function RootLayout() {
       <ClerkLoaded>
         <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
           <AuthGate>
-            <Stack screenOptions={{ headerShown: false }} />
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#fff1ee" } }} />
           </AuthGate>
         </ConvexProviderWithClerk>
       </ClerkLoaded>
