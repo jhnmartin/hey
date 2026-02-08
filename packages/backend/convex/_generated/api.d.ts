@@ -9,6 +9,7 @@
  */
 
 import type * as eventCollaborators from "../eventCollaborators.js";
+import type * as eventSeries from "../eventSeries.js";
 import type * as eventTags from "../eventTags.js";
 import type * as events from "../events.js";
 import type * as invites from "../invites.js";
@@ -27,6 +28,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   eventCollaborators: typeof eventCollaborators;
+  eventSeries: typeof eventSeries;
   eventTags: typeof eventTags;
   events: typeof events;
   invites: typeof invites;

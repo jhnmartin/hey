@@ -12,6 +12,20 @@ const ageLabels: Record<string, string> = {
   "21_plus": "21+",
 }
 
+const typeLabels: Record<string, string> = {
+  one_off: "One-Off Event",
+  recurring: "Recurring Series",
+  tour: "Tour / Series",
+  multi_location: "Multi-Location Event",
+}
+
+const frequencyLabels: Record<string, string> = {
+  daily: "Daily",
+  weekly: "Weekly",
+  biweekly: "Biweekly",
+  monthly: "Monthly",
+}
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
@@ -33,6 +47,127 @@ function Field({ label, value }: { label: string; value?: string | null }) {
   )
 }
 
+function formatDateTime(date?: string, time?: string) {
+  if (!date) return null
+  return time ? `${date} at ${time}` : date
+}
+
+// ─── Type-specific review sections ───────────────────────────────────────
+
+function OneOffReview({ values }: { values: EventFormValues }) {
+  return (
+    <Section title="Date & Location">
+      <div className="space-y-1">
+        <Field label="Starts" value={formatDateTime(values.startDate, values.startTime)} />
+        <Field label="Ends" value={formatDateTime(values.endDate, values.endTime)} />
+        <Field
+          label="Doors Open"
+          value={formatDateTime(values.doorsOpenDate, values.doorsOpenTime)}
+        />
+        {values.venues.map((venue, i) => (
+          <div key={i}>
+            <Field
+              label={i === 0 ? "Primary Venue" : "Venue"}
+              value={venue.name}
+            />
+            <Field
+              label="Address"
+              value={
+                [venue.address, venue.city, venue.state, venue.zip]
+                  .filter(Boolean)
+                  .join(", ") || undefined
+              }
+            />
+          </div>
+        ))}
+        <Field
+          label="Capacity"
+          value={
+            values.capacity !== "" && values.capacity !== undefined && values.capacity > 0
+              ? String(values.capacity)
+              : "Unlimited"
+          }
+        />
+      </div>
+    </Section>
+  )
+}
+
+function RecurringReview({ values }: { values: EventFormValues }) {
+  const count = values.generateCount ?? 4
+  const freq = values.recurrenceFrequency ?? "weekly"
+
+  return (
+    <Section title="Recurrence">
+      <div className="space-y-1">
+        <Field label="Frequency" value={frequencyLabels[freq] ?? freq} />
+        <Field label="Series Starts" value={values.seriesStartDate} />
+        <Field label="Series Ends" value={values.seriesEndDate || "Ongoing"} />
+        <Field label="Events to Generate" value={String(count)} />
+        <Field label="Start Time" value={values.recurrenceStartTime} />
+        <Field label="End Time" value={values.recurrenceEndTime} />
+        <Field label="Doors Open" value={values.recurrenceDoorsOpenTime} />
+        {values.venues.length > 0 && (
+          <Field label="Venue" value={values.venues[0]?.name} />
+        )}
+        <Field
+          label="Capacity per Event"
+          value={
+            values.capacity !== "" && values.capacity !== undefined && values.capacity > 0
+              ? String(values.capacity)
+              : "Unlimited"
+          }
+        />
+      </div>
+    </Section>
+  )
+}
+
+function TourReview({ values }: { values: EventFormValues }) {
+  return (
+    <Section title="Tour Stops">
+      <div className="space-y-2">
+        {values.tourStops.map((stop, i) => (
+          <div key={stop.clientId} className="border-border border-b pb-2 last:border-0 last:pb-0">
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground text-xs">Stop {i + 1}</span>
+              {stop.name && <span className="text-sm font-medium">{stop.name}</span>}
+            </div>
+            <Field label="Date" value={formatDateTime(stop.date, stop.time)} />
+            {stop.venue?.name && <Field label="Venue" value={stop.venue.name} />}
+          </div>
+        ))}
+      </div>
+    </Section>
+  )
+}
+
+function MultiLocationReview({ values }: { values: EventFormValues }) {
+  return (
+    <>
+      <Section title="Shared Dates">
+        <div className="space-y-1">
+          <Field label="Starts" value={formatDateTime(values.multiStartDate, values.multiStartTime)} />
+          <Field label="Ends" value={formatDateTime(values.multiEndDate, values.multiEndTime)} />
+        </div>
+      </Section>
+      <Section title="Locations">
+        <div className="space-y-2">
+          {values.multiLocations.map((loc, i) => (
+            <div key={loc.clientId} className="border-border border-b pb-2 last:border-0 last:pb-0">
+              <span className="text-muted-foreground text-xs">Location {i + 1}</span>
+              {loc.venue?.name && <Field label="Venue" value={loc.venue.name} />}
+              {loc.description && <Field label="Note" value={loc.description} />}
+            </div>
+          ))}
+        </div>
+      </Section>
+    </>
+  )
+}
+
+// ─── Main export ─────────────────────────────────────────────────────────
+
 export function StepReview() {
   const form = useFormContext<EventFormValues>()
   const values = form.getValues()
@@ -42,14 +177,23 @@ export function StepReview() {
     values.coverImageId ? { storageId: values.coverImageId as any } : "skip",
   )
 
-  const formatDateTime = (date?: string, time?: string) => {
-    if (!date) return null
-    return time ? `${date} at ${time}` : date
-  }
-
   return (
     <div className="space-y-5">
-      <Section title="Basics">
+      <Section title="Event Type">
+        <Badge variant="secondary">{typeLabels[values.eventType]}</Badge>
+      </Section>
+
+      <Section title="Classification">
+        <div className="flex flex-wrap gap-2">
+          {values.isFreeEvent && <Badge variant="secondary">Free Event</Badge>}
+          <Badge variant="outline">{ageLabels[values.ageRestriction]}</Badge>
+          <Badge variant="outline">
+            {values.visibility === "public" ? "Public" : "Private"}
+          </Badge>
+        </div>
+      </Section>
+
+      <Section title="Details">
         <div className="space-y-1">
           <p className="text-lg font-semibold">{values.name || "Untitled Event"}</p>
           <Field label="Short Description" value={values.tagline} />
@@ -74,39 +218,13 @@ export function StepReview() {
         )}
       </Section>
 
-      <Section title="Date & Location">
-        <div className="space-y-1">
-          <Field label="Starts" value={formatDateTime(values.startDate, values.startTime)} />
-          <Field label="Ends" value={formatDateTime(values.endDate, values.endTime)} />
-          <Field
-            label="Doors Open"
-            value={formatDateTime(values.doorsOpenDate, values.doorsOpenTime)}
-          />
-          {values.venues.map((venue, i) => (
-            <div key={i}>
-              <Field
-                label={i === 0 ? "Primary Venue" : "Venue"}
-                value={venue.name}
-              />
-              <Field
-                label="Address"
-                value={
-                  [venue.address, venue.city, venue.state, venue.zip]
-                    .filter(Boolean)
-                    .join(", ") || undefined
-                }
-              />
-            </div>
-          ))}
-        </div>
-      </Section>
+      {values.eventType === "one_off" && <OneOffReview values={values} />}
+      {values.eventType === "recurring" && <RecurringReview values={values} />}
+      {values.eventType === "tour" && <TourReview values={values} />}
+      {values.eventType === "multi_location" && <MultiLocationReview values={values} />}
 
       <Section title="Tickets">
         <div className="space-y-3">
-          {values.isFreeEvent && (
-            <Badge variant="secondary">Free Event</Badge>
-          )}
-          <Field label="Age Restriction" value={ageLabels[values.ageRestriction]} />
           {values.ticketTypes.map((ticket) => (
             <div
               key={ticket.clientId}
@@ -119,23 +237,6 @@ export function StepReview() {
               </span>
             </div>
           ))}
-        </div>
-      </Section>
-
-      <Section title="Settings">
-        <div className="space-y-1">
-          <Field
-            label="Visibility"
-            value={values.visibility === "public" ? "Public" : "Private"}
-          />
-          <Field
-            label="Capacity"
-            value={
-              values.capacity !== "" && values.capacity !== undefined && values.capacity > 0
-                ? String(values.capacity)
-                : "Unlimited"
-            }
-          />
         </div>
       </Section>
     </div>

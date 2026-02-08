@@ -56,6 +56,57 @@ export default defineSchema({
     .index("by_email", ["email"])
     .index("by_org", ["orgId"])
     .index("by_email_status", ["email", "status"]),
+  eventSeries: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    seriesType: v.union(
+      v.literal("recurring"),
+      v.literal("tour"),
+      v.literal("multi_location"),
+    ),
+    coverImageId: v.optional(v.id("_storage")),
+    ownerOrgId: v.id("organizations"),
+    createdBy: v.id("profiles"),
+    status: v.union(
+      v.literal("active"),
+      v.literal("paused"),
+      v.literal("completed"),
+    ),
+    recurrence: v.optional(v.object({
+      frequency: v.union(
+        v.literal("daily"),
+        v.literal("weekly"),
+        v.literal("biweekly"),
+        v.literal("monthly"),
+      ),
+      dayOfWeek: v.optional(v.number()),
+      dayOfMonth: v.optional(v.number()),
+      startTime: v.optional(v.string()),
+      endTime: v.optional(v.string()),
+      doorsOpenTime: v.optional(v.string()),
+      seriesStartDate: v.optional(v.string()),
+      seriesEndDate: v.optional(v.string()),
+    })),
+    ticketTemplates: v.optional(v.array(v.object({
+      name: v.string(),
+      price: v.number(),
+      quantity: v.number(),
+      description: v.optional(v.string()),
+    }))),
+    defaults: v.optional(v.object({
+      ageRestriction: v.optional(v.union(
+        v.literal("all_ages"),
+        v.literal("18_plus"),
+        v.literal("21_plus"),
+      )),
+      visibility: v.optional(v.union(v.literal("public"), v.literal("private"))),
+      capacity: v.optional(v.number()),
+      isFreeEvent: v.optional(v.boolean()),
+      tags: v.optional(v.array(v.string())),
+    })),
+  })
+    .index("by_org", ["ownerOrgId"])
+    .index("by_status", ["status"]),
   events: defineTable({
     name: v.string(),
     tagline: v.optional(v.string()),
@@ -94,10 +145,21 @@ export default defineSchema({
     capacity: v.optional(v.number()),
     ownerOrgId: v.id("organizations"),
     createdBy: v.id("profiles"),
+    eventType: v.optional(v.union(
+      v.literal("one_off"),
+      v.literal("recurring"),
+      v.literal("tour"),
+      v.literal("multi_location"),
+    )),
+    seriesId: v.optional(v.id("eventSeries")),
+    seriesOrder: v.optional(v.number()),
+    isFreeEvent: v.optional(v.boolean()),
   })
     .index("by_org", ["ownerOrgId"])
     .index("by_status", ["status"])
-    .index("by_org_status", ["ownerOrgId", "status"]),
+    .index("by_org_status", ["ownerOrgId", "status"])
+    .index("by_series", ["seriesId"])
+    .index("by_series_order", ["seriesId", "seriesOrder"]),
   ticketTypes: defineTable({
     eventId: v.id("events"),
     name: v.string(),
