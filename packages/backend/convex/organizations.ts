@@ -24,10 +24,18 @@ export const create = mutation({
       .unique();
     if (!profile) throw new Error("Profile not found");
 
-    return await ctx.db.insert("organizations", {
+    const orgId = await ctx.db.insert("organizations", {
       ...args,
       ownerId: profile._id,
     });
+
+    await ctx.db.insert("memberships", {
+      profileId: profile._id,
+      orgId,
+      role: "owner",
+    });
+
+    return orgId;
   },
 });
 

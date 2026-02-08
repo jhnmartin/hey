@@ -9,6 +9,7 @@ import { useEffect } from "react"
 export function RequireOrganizer({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded } = useAuth()
   const profile = useQuery(api.profiles.get)
+  const memberships = useQuery(api.memberships.listByProfile)
   const router = useRouter()
 
   useEffect(() => {
@@ -21,13 +22,25 @@ export function RequireOrganizer({ children }: { children: React.ReactNode }) {
 
     if (profile !== undefined && profile?.role !== "organizer") {
       router.replace("/events")
+      return
     }
-  }, [isSignedIn, isLoaded, profile, router])
+
+    // Organizer with no memberships → must create or join an org
+    if (
+      profile?.role === "organizer" &&
+      memberships !== undefined &&
+      memberships.length === 0
+    ) {
+      router.replace("/onboarding/create-org")
+    }
+  }, [isSignedIn, isLoaded, profile, memberships, router])
 
   if (!isLoaded) return null
   if (!isSignedIn) return null
   if (profile === undefined) return null
   if (profile?.role !== "organizer") return null
+  if (memberships === undefined) return null
+  if (memberships.length === 0) return null
 
   return <>{children}</>
 }
