@@ -56,4 +56,84 @@ export default defineSchema({
     .index("by_email", ["email"])
     .index("by_org", ["orgId"])
     .index("by_email_status", ["email", "status"]),
+  events: defineTable({
+    name: v.string(),
+    tagline: v.optional(v.string()),
+    description: v.optional(v.string()),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+    doorsOpen: v.optional(v.number()),
+    venues: v.optional(v.array(v.object({
+      name: v.string(),
+      address: v.optional(v.string()),
+      city: v.optional(v.string()),
+      state: v.optional(v.string()),
+      zip: v.optional(v.string()),
+    }))),
+    coverImageId: v.optional(v.id("_storage")),
+    status: v.union(
+      v.literal("draft"),
+      v.literal("published"),
+      v.literal("archived"),
+    ),
+    visibility: v.union(v.literal("public"), v.literal("private")),
+    lifecycle: v.union(
+      v.literal("upcoming"),
+      v.literal("postponed"),
+      v.literal("started"),
+      v.literal("ended"),
+      v.literal("cancelled"),
+    ),
+    category: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
+    ageRestriction: v.union(
+      v.literal("all_ages"),
+      v.literal("18_plus"),
+      v.literal("21_plus"),
+    ),
+    capacity: v.optional(v.number()),
+    ownerOrgId: v.id("organizations"),
+    createdBy: v.id("profiles"),
+  })
+    .index("by_org", ["ownerOrgId"])
+    .index("by_status", ["status"])
+    .index("by_org_status", ["ownerOrgId", "status"]),
+  ticketTypes: defineTable({
+    eventId: v.id("events"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    price: v.number(),
+    quantity: v.number(),
+    sold: v.number(),
+    sortOrder: v.number(),
+    status: v.union(
+      v.literal("active"),
+      v.literal("sold_out"),
+      v.literal("hidden"),
+    ),
+  }).index("by_event", ["eventId"]),
+  eventTags: defineTable({
+    name: v.string(),
+  })
+    .index("by_name", ["name"])
+    .searchIndex("search_name", { searchField: "name" }),
+  eventCollaborators: defineTable({
+    eventId: v.id("events"),
+    orgId: v.id("organizations"),
+    role: v.union(
+      v.literal("venue"),
+      v.literal("promoter"),
+      v.literal("performer"),
+      v.literal("production"),
+    ),
+    invitedBy: v.id("profiles"),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("accepted"),
+      v.literal("declined"),
+    ),
+  })
+    .index("by_event", ["eventId"])
+    .index("by_org", ["orgId"])
+    .index("by_event_org", ["eventId", "orgId"]),
 });
