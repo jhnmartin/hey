@@ -154,6 +154,12 @@ export default defineSchema({
     seriesId: v.optional(v.id("eventSeries")),
     seriesOrder: v.optional(v.number()),
     isFreeEvent: v.optional(v.boolean()),
+    // Legacy flat venue fields (kept for backwards compat with old data)
+    venueName: v.optional(v.string()),
+    address: v.optional(v.string()),
+    city: v.optional(v.string()),
+    state: v.optional(v.string()),
+    zip: v.optional(v.string()),
   })
     .index("by_org", ["ownerOrgId"])
     .index("by_status", ["status"])
