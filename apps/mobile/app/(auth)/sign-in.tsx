@@ -48,6 +48,26 @@ export default function SignInScreen() {
 
       if (result.status === "complete") {
         await setActive({ session: result.createdSessionId });
+      } else if (result.status === "needs_first_factor") {
+        const firstResult = await signIn.attemptFirstFactor({
+          strategy: "password",
+          password,
+        });
+        if (firstResult.status === "complete") {
+          await setActive({ session: firstResult.createdSessionId });
+        } else if (firstResult.status === "needs_second_factor") {
+          const factors = firstResult.supportedSecondFactors ?? [];
+          const hasEmail = factors.some((f: any) => f.strategy === "email_code");
+          const hasPhone = factors.some((f: any) => f.strategy === "phone_code");
+          const strategy = hasEmail ? "email_code" : hasPhone ? "phone_code" : "totp";
+          setMfaStrategy(strategy);
+          if (strategy === "email_code" || strategy === "phone_code") {
+            await signIn.prepareSecondFactor({ strategy });
+          }
+          setNeedsMfa(true);
+        } else {
+          setError(`Unexpected status: ${firstResult.status}`);
+        }
       } else if (result.status === "needs_second_factor") {
         const factors = result.supportedSecondFactors ?? [];
         const hasEmail = factors.some((f: any) => f.strategy === "email_code");
