@@ -12,6 +12,7 @@ type Suggestion = {
 }
 
 export type VenueResult = {
+  placeId: string
   venueName: string
   address: string
   city: string
@@ -72,6 +73,7 @@ export function VenueAutocomplete({ defaultValue, onSelect }: VenueAutocompleteP
       )
       const data = await res.json()
       onSelect({
+        placeId: suggestion.placeId,
         venueName: data.name ?? suggestion.mainText,
         address: data.address ?? "",
         city: data.city ?? "",
@@ -80,6 +82,7 @@ export function VenueAutocomplete({ defaultValue, onSelect }: VenueAutocompleteP
       })
     } catch {
       onSelect({
+        placeId: suggestion.placeId,
         venueName: suggestion.mainText,
         address: "",
         city: "",

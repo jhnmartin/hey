@@ -79,8 +79,37 @@ export const update = mutation({
       ),
     ),
     email: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    website: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
     description: v.optional(v.string()),
+    socialLinks: v.optional(v.object({
+      instagram: v.optional(v.string()),
+      twitter: v.optional(v.string()),
+      facebook: v.optional(v.string()),
+      tiktok: v.optional(v.string()),
+    })),
+    address: v.optional(v.object({
+      street: v.optional(v.string()),
+      city: v.optional(v.string()),
+      state: v.optional(v.string()),
+      zip: v.optional(v.string()),
+    })),
+    venues: v.optional(v.array(v.object({
+      placeId: v.string(),
+      name: v.string(),
+      address: v.optional(v.string()),
+      city: v.optional(v.string()),
+      state: v.optional(v.string()),
+      zip: v.optional(v.string()),
+      lat: v.optional(v.number()),
+      lng: v.optional(v.number()),
+      verificationStatus: v.union(
+        v.literal("claimed"),
+        v.literal("pending"),
+        v.literal("verified"),
+      ),
+    }))),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -100,7 +129,7 @@ export const update = mutation({
     }
 
     const { id, ...fields } = args;
-    const updates: Record<string, string> = {};
+    const updates: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) {
         updates[key] = value;
