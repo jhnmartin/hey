@@ -69,7 +69,7 @@ export function EventSignupDialog({
   }
 
   async function finishAuth(sessionId: string, setActive: typeof setSignInActive) {
-    await setActive({ session: sessionId })
+    await setActive!({ session: sessionId })
     await getOrCreate({ role: "attendee" })
     await performPendingAction()
     reset()
