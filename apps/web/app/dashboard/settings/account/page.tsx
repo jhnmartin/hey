@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { SetPageTitle } from "@/components/page-title-context"
 import { ProfileForm } from "@/components/profile-form"
 
 export const metadata: Metadata = {
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
 export default function AccountSettingsPage() {
   return (
     <>
-      <h1 className="text-2xl font-bold">Account</h1>
+      <SetPageTitle title="Account" />
       <div className="max-w-2xl">
         <ProfileForm />
       </div>

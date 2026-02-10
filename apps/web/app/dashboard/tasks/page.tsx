@@ -1,6 +1,7 @@
 "use client"
 
 import { useOrg } from "@/components/org-context"
+import { SetPageTitle } from "@/components/page-title-context"
 
 const columns = [
   {
@@ -40,7 +41,7 @@ export default function TasksPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold">Tasks</h1>
+      <SetPageTitle title="Tasks" />
       <div className="grid min-h-[60vh] gap-4 md:grid-cols-4">
         {columns.map((column) => {
           const orgTasks = column.tasks.filter(

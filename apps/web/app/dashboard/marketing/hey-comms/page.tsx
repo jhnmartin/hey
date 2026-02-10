@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { SetPageTitle } from "@/components/page-title-context"
 
 export const metadata: Metadata = {
   title: "hey comms",
@@ -33,7 +34,7 @@ const channels = [
 export default function HeyCommsPage() {
   return (
     <>
-      <h1 className="text-2xl font-bold">hey comms</h1>
+      <SetPageTitle title="hey comms" />
       <p className="text-muted-foreground text-sm">
         Reach your audience through SMS, email, push notifications, and
         hey thursday&apos;s native promotional channels.

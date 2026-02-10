@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@repo/backend/convex/_generated/api"
 import { useOrg } from "@/components/org-context"
+import { SetPageTitle } from "@/components/page-title-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -56,10 +57,7 @@ export default function TeamPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Team</h1>
-      </div>
-
+      <SetPageTitle title="Team" />
       {/* Invite form */}
       <form onSubmit={handleInvite} className="bg-muted/50 rounded-xl p-4">
         <p className="mb-3 text-sm font-medium">Invite a new member</p>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { SetPageTitle } from "@/components/page-title-context"
 
 export const metadata: Metadata = {
   title: "Settings",
@@ -26,7 +27,7 @@ const sections = [
 export default function SettingsPage() {
   return (
     <>
-      <h1 className="text-2xl font-bold">Settings</h1>
+      <SetPageTitle title="Settings" />
       <div className="grid gap-4 md:grid-cols-3">
         {sections.map((section) => (
           <Link

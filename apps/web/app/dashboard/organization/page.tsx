@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useMutation } from "convex/react"
 import { api } from "@repo/backend/convex/_generated/api"
 import { useOrg } from "@/components/org-context"
+import { SetPageTitle } from "@/components/page-title-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -53,7 +54,7 @@ export default function OrganizationSettingsPage() {
   if (!activeOrg) {
     return (
       <>
-        <h1 className="text-2xl font-bold">Organization Settings</h1>
+        <SetPageTitle title="Organization Settings" />
         <p className="text-muted-foreground">
           No organization selected. Create one from the sidebar.
         </p>
@@ -63,7 +64,7 @@ export default function OrganizationSettingsPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold">Organization Settings</h1>
+      <SetPageTitle title="Organization Settings" />
       <form onSubmit={handleSave} className="bg-muted/50 max-w-lg rounded-xl p-6">
         <div className="space-y-3">
           <div>

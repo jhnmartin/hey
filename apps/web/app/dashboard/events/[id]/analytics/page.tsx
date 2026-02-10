@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { SetPageTitle } from "@/components/page-title-context"
 
 export const metadata: Metadata = {
   title: "Event Analytics",
@@ -13,7 +14,7 @@ export default async function EventAnalyticsPage({
 
   return (
     <>
-      <h1 className="text-2xl font-bold">Event Analytics</h1>
+      <SetPageTitle title="Event Analytics" />
       <p className="text-muted-foreground text-sm">Event ID: {id}</p>
       <div className="grid gap-4 md:grid-cols-4">
         <div className="bg-muted/50 rounded-xl p-6">

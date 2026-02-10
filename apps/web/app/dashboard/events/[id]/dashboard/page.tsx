@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { SetPageTitle } from "@/components/page-title-context"
 
 export const metadata: Metadata = {
   title: "Event Dashboard",
@@ -14,7 +15,7 @@ export default async function EventDashboardPage({
 
   return (
     <>
-      <h1 className="text-2xl font-bold">Event Dashboard</h1>
+      <SetPageTitle title="Event Dashboard" />
       <p className="text-muted-foreground text-sm">Event ID: {id}</p>
       <div className="grid gap-4 md:grid-cols-4">
         <div className="bg-muted/50 rounded-xl p-6">

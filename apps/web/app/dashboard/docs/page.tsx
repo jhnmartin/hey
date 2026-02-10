@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { SetPageTitle } from "@/components/page-title-context"
 
 export const metadata: Metadata = {
   title: "Documentation",
@@ -34,7 +35,7 @@ const sections = [
 export default function DocsPage() {
   return (
     <>
-      <h1 className="text-2xl font-bold">Documentation</h1>
+      <SetPageTitle title="Documentation" />
       <div className="grid max-w-3xl gap-4 md:grid-cols-2">
         {sections.map((section) => (
           <div

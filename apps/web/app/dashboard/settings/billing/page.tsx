@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { SetPageTitle } from "@/components/page-title-context"
 
 export const metadata: Metadata = {
   title: "Billing",
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
 export default function BillingSettingsPage() {
   return (
     <>
-      <h1 className="text-2xl font-bold">Billing</h1>
+      <SetPageTitle title="Billing" />
       <div className="bg-muted/50 max-w-2xl rounded-xl p-6">
         <h3 className="font-semibold">Current Plan</h3>
         <div className="mt-2 flex items-center justify-between">

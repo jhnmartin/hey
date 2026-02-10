@@ -3,52 +3,15 @@
 import { useFormContext } from "react-hook-form"
 import type { EventFormValues, EventType } from "./event-form-schema"
 import { cn } from "@/lib/utils"
-import {
-  IconCalendarEvent,
-  IconRepeat,
-  IconRoute,
-  IconMapPins,
-} from "@tabler/icons-react"
+import { Squircle } from "@/components/ui/squircle"
 
-const EVENT_TYPE_CARDS: {
-  value: EventType
-  title: string
-  description: string
-  example: string
-  icon: typeof IconCalendarEvent
-}[] = [
-  {
-    value: "one_off",
-    title: "One-Off",
-    description:
-      "A single event — whether one night or multiple days, at one venue or several.",
-    example: "Album release party, holiday bash",
-    icon: IconCalendarEvent,
-  },
-  {
-    value: "recurring",
-    title: "Recurring",
-    description:
-      "Repeats on a schedule. Core details stay the same, each occurrence gets its own tickets.",
-    example: "Weekly club night, monthly open mic",
-    icon: IconRepeat,
-  },
-  {
-    value: "tour",
-    title: "Tour / Series",
-    description:
-      "A common thread across stops — but venues, dates, and details change per event.",
-    example: "DJ tour, concert series",
-    icon: IconRoute,
-  },
-  {
-    value: "multi_location",
-    title: "Multi-Location",
-    description:
-      "Same event at different locations, on the same or close dates.",
-    example: "Record Store Day, bar crawl",
-    icon: IconMapPins,
-  },
+// Thursday dot positions (top %) — one for single, all five for recurring
+const THURSDAY_ROWS = ["10%", "26%", "42%", "58%", "74%"]
+const SINGLE_DOT_INDEX = 3 // 4th Thursday
+
+const EVENT_TYPES: { value: EventType; label: string; dots: string[] }[] = [
+  { value: "single", label: "Single", dots: [THURSDAY_ROWS[SINGLE_DOT_INDEX]!] },
+  { value: "recurring", label: "Recurring", dots: THURSDAY_ROWS },
 ]
 
 export function StepEventType() {
@@ -57,46 +20,59 @@ export function StepEventType() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold">Let's Get Started</h2>
-        <p className="text-muted-foreground text-sm">
-          What kind of event are you creating?
-        </p>
-      </div>
+      <h2 className="text-lg font-semibold">Select Event Type</h2>
 
-      <div className="grid grid-cols-2 gap-3">
-        {EVENT_TYPE_CARDS.map((card) => {
-          const Icon = card.icon
-          const isSelected = selected === card.value
-          return (
-            <button
-              key={card.value}
-              type="button"
-              onClick={() => form.setValue("eventType", card.value)}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {EVENT_TYPES.map((type) => {
+          const isSelected = selected === type.value
+          const isRecurring = type.value === "recurring"
+          const showBorder = isRecurring && !isSelected
+
+          const inner = (
+            <Squircle
               className={cn(
-                "rounded-lg border p-4 text-left transition-all",
+                "size-full p-[2.5%] transition-colors",
                 isSelected
-                  ? "border-primary bg-primary/5 ring-primary/30 ring-1"
-                  : "hover:border-foreground/20 border-border",
+                  ? "bg-primary"
+                  : isRecurring
+                    ? "bg-foreground dark:bg-secondary-foreground"
+                    : "bg-foreground",
               )}
             >
-              <div className="mb-2 flex items-center gap-2">
-                <Icon
-                  className={cn(
-                    "size-5",
-                    isSelected
-                      ? "text-primary"
-                      : "text-muted-foreground",
-                  )}
-                />
-                <span className="text-sm font-medium">{card.title}</span>
-              </div>
-              <p className="text-muted-foreground text-xs leading-relaxed">
-                {card.description}
-              </p>
-              <p className="text-muted-foreground/60 mt-1.5 text-[11px]">
-                e.g. {card.example}
-              </p>
+              <Squircle className="relative mt-[15%] flex h-[85%] w-full items-center justify-center bg-background">
+                <span className="text-foreground text-2xl font-bold tracking-tight">
+                  {type.label}
+                </span>
+                {type.dots.map((top) => (
+                  <Squircle
+                    key={top}
+                    className={cn(
+                      "absolute right-[20%] h-[14%] w-[12%] transition-colors",
+                      isSelected
+                        ? "bg-primary"
+                        : isRecurring
+                          ? "bg-foreground dark:bg-secondary-foreground"
+                          : "bg-foreground",
+                    )}
+                    style={{ top }}
+                  />
+                ))}
+              </Squircle>
+            </Squircle>
+          )
+
+          return (
+            <button
+              key={type.value}
+              type="button"
+              onClick={() => form.setValue("eventType", type.value)}
+              className="aspect-square"
+            >
+              {showBorder ? (
+                <Squircle className="size-full bg-secondary p-px">
+                  {inner}
+                </Squircle>
+              ) : inner}
             </button>
           )
         })}

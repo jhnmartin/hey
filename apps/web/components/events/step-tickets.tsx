@@ -25,7 +25,7 @@ export function StepTickets() {
   const form = useFormContext<EventFormValues>()
   const isFree = form.watch("isFreeEvent")
   const eventType = form.watch("eventType")
-  const isSeriesType = eventType === "recurring" || eventType === "tour" || eventType === "multi_location"
+  const isSeriesType = eventType === "recurring"
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -34,6 +34,7 @@ export function StepTickets() {
 
   return (
     <div className="space-y-5">
+      <h2 className="text-lg font-semibold">Tickets</h2>
       {isSeriesType && (
         <div className="bg-muted/30 rounded-lg border p-3">
           <p className="text-muted-foreground text-sm">

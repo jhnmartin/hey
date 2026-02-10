@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useMutation } from "convex/react"
 import { api } from "@repo/backend/convex/_generated/api"
+import { SetPageTitle } from "@/components/page-title-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -41,7 +42,7 @@ export default function NewOrganizationPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold">Create Organization</h1>
+      <SetPageTitle title="Create Organization" />
       <form onSubmit={handleSubmit} className="bg-muted/50 max-w-lg rounded-xl p-6">
         <div className="space-y-3">
           <div>

@@ -51,7 +51,8 @@ export default function EventsScreen() {
           keyExtractor={(item) => item._id}
           contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 100 }}
           renderItem={({ item }) => (
-            <View
+            <Pressable
+              onPress={() => router.push(`/event/${item._id}`)}
               style={{
                 backgroundColor: "#18181b",
                 borderRadius: 12,
@@ -86,7 +87,7 @@ export default function EventsScreen() {
                   </Text>
                 ) : null}
               </View>
-            </View>
+            </Pressable>
           )}
         />
       )}

@@ -22,11 +22,7 @@ export const create = mutation({
     name: v.string(),
     tagline: v.optional(v.string()),
     description: v.optional(v.string()),
-    seriesType: v.union(
-      v.literal("recurring"),
-      v.literal("tour"),
-      v.literal("multi_location"),
-    ),
+    seriesType: v.literal("recurring"),
     coverImageId: v.optional(v.id("_storage")),
     ownerOrgId: v.id("organizations"),
 

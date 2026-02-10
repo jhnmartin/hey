@@ -1,6 +1,6 @@
 import { z } from "zod/v4"
 
-export const EVENT_TYPES = ["one_off", "recurring", "tour", "multi_location"] as const
+export const EVENT_TYPES = ["single", "recurring"] as const
 export type EventType = (typeof EVENT_TYPES)[number]
 
 const venueSchema = z.object({
@@ -19,28 +19,9 @@ const ticketTypeSchema = z.object({
   description: z.string().optional(),
 })
 
-// Tour stop: date + venue per stop
-const tourStopSchema = z.object({
-  clientId: z.string(),
-  name: z.string().optional(),
-  description: z.string().optional(),
-  date: z.string().optional(),
-  time: z.string().optional(),
-  endTime: z.string().optional(),
-  venue: venueSchema.optional(),
-})
-
-// Multi-location entry: venue per location
-const multiLocationSchema = z.object({
-  clientId: z.string(),
-  description: z.string().optional(),
-  venue: venueSchema.optional(),
-  capacity: z.union([z.number().int().min(0), z.literal("")]).optional(),
-})
-
 export const eventFormSchema = z.object({
   // Step 0: Event Type
-  eventType: z.enum(["one_off", "recurring", "tour", "multi_location"]),
+  eventType: z.enum(["single", "recurring"]),
 
   // Step 1: Classification
   isFreeEvent: z.boolean(),
@@ -54,7 +35,7 @@ export const eventFormSchema = z.object({
   tags: z.array(z.string()).max(5, "Maximum 5 tags"),
   coverImageId: z.string().nullable(),
 
-  // Step 2: Details — One-off dates
+  // Step 2: Details — Single event dates
   startDate: z.string().optional(),
   startTime: z.string().optional(),
   endDate: z.string().optional(),
@@ -75,16 +56,6 @@ export const eventFormSchema = z.object({
   seriesEndDate: z.string().optional(),
   generateCount: z.number().int().min(1).optional(),
 
-  // Step 2: Details — Tour / Series
-  tourStops: z.array(tourStopSchema),
-
-  // Step 2: Details — Multi-Location
-  multiLocations: z.array(multiLocationSchema),
-  multiStartDate: z.string().optional(),
-  multiStartTime: z.string().optional(),
-  multiEndDate: z.string().optional(),
-  multiEndTime: z.string().optional(),
-
   // Step 3: Tickets
   ticketTypes: z.array(ticketTypeSchema).min(1, "At least one ticket type is required"),
 })
@@ -92,7 +63,7 @@ export const eventFormSchema = z.object({
 export type EventFormValues = z.infer<typeof eventFormSchema>
 
 export const eventFormDefaults: EventFormValues = {
-  eventType: "one_off",
+  eventType: "single",
   isFreeEvent: false,
   ageRestriction: "all_ages",
   visibility: "public",
@@ -118,18 +89,6 @@ export const eventFormDefaults: EventFormValues = {
   seriesStartDate: "",
   seriesEndDate: "",
   generateCount: 4,
-  tourStops: [
-    { clientId: crypto.randomUUID() },
-    { clientId: crypto.randomUUID() },
-  ],
-  multiLocations: [
-    { clientId: crypto.randomUUID() },
-    { clientId: crypto.randomUUID() },
-  ],
-  multiStartDate: "",
-  multiStartTime: "",
-  multiEndDate: "",
-  multiEndTime: "",
   ticketTypes: [
     {
       clientId: crypto.randomUUID(),
@@ -150,14 +109,10 @@ export function getStepFields(step: number, eventType: EventType): (keyof EventF
       return ["ageRestriction", "visibility"]
     case 2: // Details
       switch (eventType) {
-        case "one_off":
+        case "single":
           return ["name"]
         case "recurring":
           return ["name", "recurrenceFrequency", "seriesStartDate"]
-        case "tour":
-          return ["name", "tourStops"]
-        case "multi_location":
-          return ["name", "multiLocations"]
       }
       break
     case 3: // Tickets

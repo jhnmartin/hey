@@ -1,6 +1,7 @@
 "use client"
 
 import { useOrg } from "@/components/org-context"
+import { SetPageTitle } from "@/components/page-title-context"
 
 const orgStats: Record<string, { events: number; rsvps: number; revenue: string }> = {
   "hey thursday": { events: 3, rsvps: 890, revenue: "$4,250" },
@@ -29,6 +30,7 @@ export default function DashboardPage() {
 
   return (
     <>
+      <SetPageTitle title="Dashboard" />
       <div className="grid auto-rows-min gap-4 md:grid-cols-3">
         <div className="bg-muted/50 rounded-xl p-6">
           <p className="text-muted-foreground text-sm font-medium">

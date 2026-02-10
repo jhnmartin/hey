@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { SetPageTitle } from "@/components/page-title-context"
 
 export const metadata: Metadata = {
   title: "Event Preview",
@@ -14,8 +15,8 @@ export default async function EventPreviewPage({
 
   return (
     <>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Preview</h1>
+      <SetPageTitle title="Preview" />
+      <div className="flex justify-end">
         <div className="flex gap-2">
           <Link
             href={`/dashboard/events/${id}`}
