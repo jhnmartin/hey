@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as aiEnrichment from "../aiEnrichment.js";
+import type * as aiEnrichmentHelpers from "../aiEnrichmentHelpers.js";
 import type * as eventCollaborators from "../eventCollaborators.js";
 import type * as eventSeries from "../eventSeries.js";
 import type * as eventTags from "../eventTags.js";
@@ -28,6 +30,8 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  aiEnrichment: typeof aiEnrichment;
+  aiEnrichmentHelpers: typeof aiEnrichmentHelpers;
   eventCollaborators: typeof eventCollaborators;
   eventSeries: typeof eventSeries;
   eventTags: typeof eventTags;
