@@ -161,6 +161,11 @@ export default function EventEditPage() {
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState(false)
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
   // Initialize fields from query data, and reactively update untouched fields when AI completes
   useEffect(() => {
     if (!event) return
@@ -284,11 +289,6 @@ export default function EventEditPage() {
       </>
     )
   }
-
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  )
 
   const handleDragEnd = (e: DragEndEvent) => {
     const { active, over } = e
