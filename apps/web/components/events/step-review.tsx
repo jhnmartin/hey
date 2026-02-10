@@ -13,10 +13,8 @@ const ageLabels: Record<string, string> = {
 }
 
 const typeLabels: Record<string, string> = {
-  one_off: "One-Off Event",
+  single: "Single Event",
   recurring: "Recurring Series",
-  tour: "Tour / Series",
-  multi_location: "Multi-Location Event",
 }
 
 const frequencyLabels: Record<string, string> = {
@@ -54,7 +52,7 @@ function formatDateTime(date?: string, time?: string) {
 
 // ─── Type-specific review sections ───────────────────────────────────────
 
-function OneOffReview({ values }: { values: EventFormValues }) {
+function SingleReview({ values }: { values: EventFormValues }) {
   return (
     <Section title="Date & Location">
       <div className="space-y-1">
@@ -123,49 +121,6 @@ function RecurringReview({ values }: { values: EventFormValues }) {
   )
 }
 
-function TourReview({ values }: { values: EventFormValues }) {
-  return (
-    <Section title="Tour Stops">
-      <div className="space-y-2">
-        {values.tourStops.map((stop, i) => (
-          <div key={stop.clientId} className="border-border border-b pb-2 last:border-0 last:pb-0">
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground text-xs">Stop {i + 1}</span>
-              {stop.name && <span className="text-sm font-medium">{stop.name}</span>}
-            </div>
-            <Field label="Date" value={formatDateTime(stop.date, stop.time)} />
-            {stop.venue?.name && <Field label="Venue" value={stop.venue.name} />}
-          </div>
-        ))}
-      </div>
-    </Section>
-  )
-}
-
-function MultiLocationReview({ values }: { values: EventFormValues }) {
-  return (
-    <>
-      <Section title="Shared Dates">
-        <div className="space-y-1">
-          <Field label="Starts" value={formatDateTime(values.multiStartDate, values.multiStartTime)} />
-          <Field label="Ends" value={formatDateTime(values.multiEndDate, values.multiEndTime)} />
-        </div>
-      </Section>
-      <Section title="Locations">
-        <div className="space-y-2">
-          {values.multiLocations.map((loc, i) => (
-            <div key={loc.clientId} className="border-border border-b pb-2 last:border-0 last:pb-0">
-              <span className="text-muted-foreground text-xs">Location {i + 1}</span>
-              {loc.venue?.name && <Field label="Venue" value={loc.venue.name} />}
-              {loc.description && <Field label="Note" value={loc.description} />}
-            </div>
-          ))}
-        </div>
-      </Section>
-    </>
-  )
-}
-
 // ─── Main export ─────────────────────────────────────────────────────────
 
 export function StepReview() {
@@ -218,10 +173,8 @@ export function StepReview() {
         )}
       </Section>
 
-      {values.eventType === "one_off" && <OneOffReview values={values} />}
+      {values.eventType === "single" && <SingleReview values={values} />}
       {values.eventType === "recurring" && <RecurringReview values={values} />}
-      {values.eventType === "tour" && <TourReview values={values} />}
-      {values.eventType === "multi_location" && <MultiLocationReview values={values} />}
 
       <Section title="Tickets">
         <div className="space-y-3">

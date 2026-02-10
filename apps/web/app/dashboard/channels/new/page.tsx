@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { SetPageTitle } from "@/components/page-title-context"
 
 export const metadata: Metadata = {
   title: "New Channel",
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
 export default function NewChannelPage() {
   return (
     <>
-      <h1 className="text-2xl font-bold">Create Channel</h1>
+      <SetPageTitle title="Create Channel" />
       <div className="bg-muted/50 max-w-lg rounded-xl p-6">
         <div className="space-y-4">
           <div>

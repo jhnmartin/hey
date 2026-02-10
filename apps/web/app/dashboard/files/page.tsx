@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useOrg } from "@/components/org-context"
+import { SetPageTitle } from "@/components/page-title-context"
 
 const allFiles = [
   {
@@ -60,8 +61,8 @@ export default function FilesPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Files</h1>
+      <SetPageTitle title="Files" />
+      <div className="flex justify-end">
         <button className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex cursor-not-allowed items-center rounded-md px-4 py-2 text-sm font-medium opacity-50">
           Upload
         </button>

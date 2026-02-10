@@ -59,11 +59,7 @@ export default defineSchema({
   eventSeries: defineTable({
     name: v.string(),
     description: v.optional(v.string()),
-    seriesType: v.union(
-      v.literal("recurring"),
-      v.literal("tour"),
-      v.literal("multi_location"),
-    ),
+    seriesType: v.literal("recurring"),
     coverImageId: v.optional(v.id("_storage")),
     ownerOrgId: v.id("organizations"),
     createdBy: v.id("profiles"),
@@ -146,10 +142,8 @@ export default defineSchema({
     ownerOrgId: v.id("organizations"),
     createdBy: v.id("profiles"),
     eventType: v.optional(v.union(
-      v.literal("one_off"),
+      v.literal("single"),
       v.literal("recurring"),
-      v.literal("tour"),
-      v.literal("multi_location"),
     )),
     seriesId: v.optional(v.id("eventSeries")),
     seriesOrder: v.optional(v.number()),

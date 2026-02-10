@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { SetPageTitle } from "@/components/page-title-context"
 
 export const metadata: Metadata = {
   title: "get radical",
@@ -34,7 +35,7 @@ const automations = [
 export default function GetRadicalPage() {
   return (
     <>
-      <h1 className="text-2xl font-bold">get radical</h1>
+      <SetPageTitle title="get radical" />
       <p className="text-muted-foreground text-sm">
         Paid marketing automations powered by our partner platform.
         Launch pre-built campaigns or create your own.

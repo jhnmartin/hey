@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { SetPageTitle } from "@/components/page-title-context"
 
 export const metadata: Metadata = {
   title: "Support",
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
 export default function SupportPage() {
   return (
     <>
-      <h1 className="text-2xl font-bold">Support</h1>
+      <SetPageTitle title="Support" />
       <div className="bg-muted/50 max-w-2xl rounded-xl p-6">
         <h2 className="font-semibold">How can we help?</h2>
         <p className="text-muted-foreground mt-2 text-sm">

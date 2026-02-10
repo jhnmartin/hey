@@ -12,42 +12,12 @@ import { StepEventType } from "./step-event-type"
 import { StepClassification } from "./step-classification"
 import { StepDetails } from "./step-details"
 import { StepTickets } from "./step-tickets"
-import { StepReview } from "./step-review"
 import {
   eventFormSchema,
   eventFormDefaults,
-  getStepFields,
   type EventFormValues,
   type EventType,
 } from "./event-form-schema"
-import { useFormProgress } from "./use-form-progress"
-
-const STEPS = [
-  { label: "Event Type", component: StepEventType },
-  { label: "Classification", component: StepClassification },
-  { label: "Details", component: StepDetails },
-  { label: "Tickets", component: StepTickets },
-  { label: "Review", component: StepReview },
-]
-
-function ProgressBar({ stepLabel }: { stepLabel: string }) {
-  const percent = useFormProgress()
-
-  return (
-    <div>
-      <div className="bg-muted h-1.5 w-full overflow-hidden rounded-full">
-        <div
-          className="bg-primary h-full rounded-full transition-all duration-500 ease-out"
-          style={{ width: `${percent}%` }}
-        />
-      </div>
-      <div className="text-muted-foreground mt-1 flex items-center justify-between text-xs">
-        <span>{stepLabel}</span>
-        <span>{percent}%</span>
-      </div>
-    </div>
-  )
-}
 
 function combineDateTime(date?: string, time?: string): number | undefined {
   if (!date) return undefined
@@ -91,62 +61,26 @@ function generateRecurringDates(
   return dates
 }
 
-// ─── Build events data for series types ──────────────────────────────────
+// ─── Build events data for recurring series ─────────────────────────────
 
 function buildSeriesEvents(values: EventFormValues) {
-  const eventType = values.eventType
+  const dates = generateRecurringDates(
+    values.seriesStartDate || new Date().toISOString().split("T")[0]!,
+    values.recurrenceFrequency || "weekly",
+    values.generateCount || 4,
+    values.seriesEndDate || undefined,
+  )
 
-  if (eventType === "recurring") {
-    const dates = generateRecurringDates(
-      values.seriesStartDate || new Date().toISOString().split("T")[0]!,
-      values.recurrenceFrequency || "weekly",
-      values.generateCount || 4,
-      values.seriesEndDate || undefined,
-    )
-
-    return dates.map((date) => ({
-      name: values.name,
-      tagline: values.tagline || undefined,
-      description: values.description || undefined,
-      startDate: combineDateTime(date, values.recurrenceStartTime),
-      endDate: combineDateTime(date, values.recurrenceEndTime),
-      doorsOpen: combineDateTime(date, values.recurrenceDoorsOpenTime),
-      venues: values.venues.length > 0 ? values.venues : undefined,
-      coverImageId: (values.coverImageId || undefined) as any,
-    }))
-  }
-
-  if (eventType === "tour") {
-    return values.tourStops
-      .filter((stop) => stop.date || stop.venue)
-      .map((stop) => ({
-        name: stop.name || values.name,
-        tagline: values.tagline || undefined,
-        description: stop.description || values.description || undefined,
-        startDate: combineDateTime(stop.date, stop.time),
-        endDate: combineDateTime(stop.date, stop.endTime),
-        doorsOpen: undefined,
-        venues: stop.venue?.name ? [stop.venue] : undefined,
-        coverImageId: (values.coverImageId || undefined) as any,
-      }))
-  }
-
-  if (eventType === "multi_location") {
-    return values.multiLocations
-      .filter((loc) => loc.venue)
-      .map((loc) => ({
-        name: values.name,
-        tagline: values.tagline || undefined,
-        description: loc.description || values.description || undefined,
-        startDate: combineDateTime(values.multiStartDate, values.multiStartTime),
-        endDate: combineDateTime(values.multiEndDate, values.multiEndTime),
-        doorsOpen: undefined,
-        venues: loc.venue?.name ? [loc.venue] : undefined,
-        coverImageId: (values.coverImageId || undefined) as any,
-      }))
-  }
-
-  return []
+  return dates.map((date) => ({
+    name: values.name,
+    tagline: values.tagline || undefined,
+    description: values.description || undefined,
+    startDate: combineDateTime(date, values.recurrenceStartTime),
+    endDate: combineDateTime(date, values.recurrenceEndTime),
+    doorsOpen: combineDateTime(date, values.recurrenceDoorsOpenTime),
+    venues: values.venues.length > 0 ? values.venues : undefined,
+    coverImageId: (values.coverImageId || undefined) as any,
+  }))
 }
 
 export function EventWizard() {
@@ -155,7 +89,6 @@ export function EventWizard() {
   const createEvent = useMutation(api.events.create)
   const createTicket = useMutation(api.ticketTypes.create)
   const createSeries = useMutation(api.eventSeries.create)
-  const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
 
   const form = useForm<EventFormValues>({
@@ -165,20 +98,8 @@ export function EventWizard() {
   })
 
   const eventType = form.watch("eventType") as EventType
-  const StepComponent = STEPS[step]!.component
 
-  const goNext = async () => {
-    const fields = getStepFields(step, eventType)
-    if (fields && fields.length > 0) {
-      const valid = await form.trigger(fields)
-      if (!valid) return
-    }
-    setStep((s) => Math.min(s + 1, STEPS.length - 1))
-  }
-
-  const goBack = () => setStep((s) => Math.max(s - 1, 0))
-
-  const buildOneOffArgs = (values: EventFormValues, status: "draft" | "published") => {
+  const buildSingleArgs = (values: EventFormValues, status: "draft" | "published") => {
     return {
       name: values.name,
       tagline: values.tagline || undefined,
@@ -197,13 +118,13 @@ export function EventWizard() {
           ? Number(values.capacity)
           : undefined,
       ownerOrgId: activeOrg!._id,
-      eventType: "one_off" as const,
+      eventType: "single" as const,
       isFreeEvent: values.isFreeEvent,
     }
   }
 
-  const submitOneOff = async (values: EventFormValues, status: "draft" | "published") => {
-    const eventId = await createEvent(buildOneOffArgs(values, status))
+  const submitSingle = async (values: EventFormValues, status: "draft" | "published") => {
+    const eventId = await createEvent(buildSingleArgs(values, status))
 
     for (let i = 0; i < values.ticketTypes.length; i++) {
       const ticket = values.ticketTypes[i]!
@@ -230,7 +151,7 @@ export function EventWizard() {
       name: values.name,
       tagline: values.tagline || undefined,
       description: values.description || undefined,
-      seriesType: values.eventType as "recurring" | "tour" | "multi_location",
+      seriesType: "recurring" as const,
       coverImageId: (values.coverImageId || undefined) as any,
       ownerOrgId: activeOrg!._id,
       isFreeEvent: values.isFreeEvent,
@@ -247,19 +168,16 @@ export function EventWizard() {
         quantity: t.quantity,
         description: t.description || undefined,
       })),
-      recurrence:
-        values.eventType === "recurring"
-          ? {
-              frequency: values.recurrenceFrequency || ("weekly" as const),
-              dayOfWeek: values.recurrenceDayOfWeek,
-              dayOfMonth: values.recurrenceDayOfMonth,
-              startTime: values.recurrenceStartTime || undefined,
-              endTime: values.recurrenceEndTime || undefined,
-              doorsOpenTime: values.recurrenceDoorsOpenTime || undefined,
-              seriesStartDate: values.seriesStartDate || undefined,
-              seriesEndDate: values.seriesEndDate || undefined,
-            }
-          : undefined,
+      recurrence: {
+        frequency: values.recurrenceFrequency || ("weekly" as const),
+        dayOfWeek: values.recurrenceDayOfWeek,
+        dayOfMonth: values.recurrenceDayOfMonth,
+        startTime: values.recurrenceStartTime || undefined,
+        endTime: values.recurrenceEndTime || undefined,
+        doorsOpenTime: values.recurrenceDoorsOpenTime || undefined,
+        seriesStartDate: values.seriesStartDate || undefined,
+        seriesEndDate: values.seriesEndDate || undefined,
+      },
       events,
       status,
     })
@@ -272,7 +190,6 @@ export function EventWizard() {
     const name = form.getValues("name")
     if (!name) {
       form.setError("name", { message: "Event name is required to save" })
-      setStep(2) // Details step where name lives
       return
     }
 
@@ -281,8 +198,8 @@ export function EventWizard() {
       const values = form.getValues()
       let eventId: string | undefined
 
-      if (values.eventType === "one_off") {
-        eventId = await submitOneOff(values, "draft")
+      if (values.eventType === "single") {
+        eventId = await submitSingle(values, "draft")
       } else {
         eventId = await submitSeries(values, "draft")
       }
@@ -303,15 +220,9 @@ export function EventWizard() {
 
     const values = form.getValues()
 
-    // Type-specific publish checks
-    if (values.eventType === "one_off") {
+    if (values.eventType === "single") {
       if (!values.startDate) {
         form.setError("startDate", { message: "Start date is required to publish" })
-        setStep(2)
-        return
-      }
-      if (values.venues.length === 0) {
-        setStep(2)
         return
       }
     }
@@ -319,23 +230,6 @@ export function EventWizard() {
     if (values.eventType === "recurring") {
       if (!values.seriesStartDate) {
         form.setError("seriesStartDate", { message: "Series start date is required" })
-        setStep(2)
-        return
-      }
-    }
-
-    if (values.eventType === "tour") {
-      const validStops = values.tourStops.filter((s) => s.date || s.venue)
-      if (validStops.length < 2) {
-        setStep(2)
-        return
-      }
-    }
-
-    if (values.eventType === "multi_location") {
-      const validLocs = values.multiLocations.filter((l) => l.venue)
-      if (validLocs.length < 2) {
-        setStep(2)
         return
       }
     }
@@ -344,8 +238,8 @@ export function EventWizard() {
     try {
       let eventId: string | undefined
 
-      if (values.eventType === "one_off") {
-        eventId = await submitOneOff(values, "published")
+      if (values.eventType === "single") {
+        eventId = await submitSingle(values, "published")
       } else {
         eventId = await submitSeries(values, "published")
       }
@@ -369,57 +263,31 @@ export function EventWizard() {
   }
 
   return (
-    <div>
-      <FormProvider {...form}>
-        <ProgressBar stepLabel={STEPS[step]!.label} />
-        <form onSubmit={(e) => e.preventDefault()}>
-          <div className="min-h-[460px] py-6">
-            <StepComponent />
-          </div>
+    <FormProvider {...form}>
+      <form onSubmit={(e) => e.preventDefault()} className="space-y-10 pb-8">
+        <StepEventType />
+        <StepClassification />
+        <StepDetails />
+        <StepTickets />
 
-          <div className="flex items-center justify-between border-t pt-4">
-            <div className="flex gap-2">
-              {step > 0 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={goBack}
-                  disabled={submitting}
-                >
-                  Back
-                </Button>
-              )}
-            </div>
-
-            <div className="flex gap-2">
-              {step >= 2 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={saveAsDraft}
-                  disabled={submitting}
-                >
-                  {submitting ? "Saving..." : "Save as Draft"}
-                </Button>
-              )}
-
-              {step < STEPS.length - 1 ? (
-                <Button type="button" onClick={goNext} disabled={submitting}>
-                  Next
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  onClick={publishEvent}
-                  disabled={submitting}
-                >
-                  {submitting ? "Publishing..." : "Publish Event"}
-                </Button>
-              )}
-            </div>
-          </div>
-        </form>
-      </FormProvider>
-    </div>
+        <div className="flex gap-2 border-t pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={saveAsDraft}
+            disabled={submitting}
+          >
+            {submitting ? "Saving..." : "Save as Draft"}
+          </Button>
+          <Button
+            type="button"
+            onClick={publishEvent}
+            disabled={submitting}
+          >
+            {submitting ? "Publishing..." : "Publish Event"}
+          </Button>
+        </div>
+      </form>
+    </FormProvider>
   )
 }

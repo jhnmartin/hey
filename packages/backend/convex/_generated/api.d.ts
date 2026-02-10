@@ -15,6 +15,7 @@ import type * as events from "../events.js";
 import type * as invites from "../invites.js";
 import type * as memberships from "../memberships.js";
 import type * as organizations from "../organizations.js";
+import type * as places from "../places.js";
 import type * as profiles from "../profiles.js";
 import type * as storage from "../storage.js";
 import type * as tasks from "../tasks.js";
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   invites: typeof invites;
   memberships: typeof memberships;
   organizations: typeof organizations;
+  places: typeof places;
   profiles: typeof profiles;
   storage: typeof storage;
   tasks: typeof tasks;

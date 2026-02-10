@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { SetPageTitle } from "@/components/page-title-context"
 
 export const metadata: Metadata = {
   title: "Notification Preferences",
@@ -26,7 +27,7 @@ const preferences = [
 export default function NotificationSettingsPage() {
   return (
     <>
-      <h1 className="text-2xl font-bold">Notifications</h1>
+      <SetPageTitle title="Notifications" />
       <div className="bg-muted/50 max-w-2xl rounded-xl">
         {preferences.map((pref) => (
           <div

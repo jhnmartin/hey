@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useQuery } from "convex/react"
 import { api } from "@repo/backend/convex/_generated/api"
 import { useOrg } from "@/components/org-context"
+import { SetPageTitle } from "@/components/page-title-context"
 import { Badge } from "@/components/ui/badge"
 
 export default function EventsPage() {
@@ -15,8 +16,8 @@ export default function EventsPage() {
 
   return (
     <>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Events</h1>
+      <SetPageTitle title="Events" />
+      <div className="flex justify-end">
         <Link
           href="/dashboard/events/new"
           className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center rounded-md px-4 py-2 text-sm font-medium"

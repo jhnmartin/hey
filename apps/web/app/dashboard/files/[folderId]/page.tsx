@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { SetPageTitle } from "@/components/page-title-context"
 
 export const metadata: Metadata = {
   title: "Folder",
@@ -30,7 +31,7 @@ export default async function FolderPage({
         <span className="text-muted-foreground">/</span>
         <span className="font-medium">Folder {folderId}</span>
       </div>
-      <h1 className="text-2xl font-bold">Folder {folderId}</h1>
+      <SetPageTitle title={`Folder ${folderId}`} />
       <div className="bg-muted/50 rounded-xl">
         {dummyFiles.map((file) => (
           <div

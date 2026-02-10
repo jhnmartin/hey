@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { SetPageTitle } from "@/components/page-title-context"
 
 export const metadata: Metadata = {
   title: "Channel",
@@ -13,8 +14,8 @@ export default async function ChannelPage({
 
   return (
     <div className="flex min-h-[70vh] flex-col">
+      <SetPageTitle title={`#${channelId}`} />
       <div className="border-b pb-3">
-        <h1 className="text-lg font-bold">#{channelId}</h1>
         <p className="text-muted-foreground text-sm">
           {channelId === "general"
             ? "Company-wide announcements and updates"
