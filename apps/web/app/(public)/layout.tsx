@@ -19,13 +19,7 @@ export default function PublicLayout({
               href="/events"
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
-              Events
-            </Link>
-            <Link
-              href="/tickets"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              My Tickets
+              find events
             </Link>
             <ThemeToggle />
             <PublicNavUser />
@@ -34,16 +28,10 @@ export default function PublicLayout({
       </header>
       <main className="flex-1">{children}</main>
       <footer className="border-t">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 text-sm">
+        <div className="mx-auto flex h-16 max-w-7xl items-center px-4 text-sm">
           <p className="text-muted-foreground">
             &copy; 2025 hey thursday. All rights reserved.
           </p>
-          <Link
-            href="/dashboard"
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Organizer Dashboard
-          </Link>
         </div>
       </footer>
     </div>

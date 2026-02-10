@@ -29,7 +29,7 @@ export function ViewSwitcher() {
         <TooltipTrigger asChild>
           <Link
             href={isDashboard ? "/events" : "/dashboard"}
-            className="fixed right-3 bottom-3 z-50 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
+            className="fixed right-3 bottom-4 z-50 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-colors hover:bg-primary/90"
           >
             <IconArrowsRightLeft className="size-4" />
           </Link>

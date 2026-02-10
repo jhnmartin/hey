@@ -16,6 +16,7 @@ export const create = mutation({
       city: v.optional(v.string()),
       state: v.optional(v.string()),
       zip: v.optional(v.string()),
+      primary: v.optional(v.boolean()),
     }))),
     coverImageId: v.optional(v.id("_storage")),
     status: v.union(
@@ -109,6 +110,30 @@ export const listByOrg = query({
   },
 });
 
+export const listPublic = query({
+  args: {},
+  handler: async (ctx) => {
+    const events = await ctx.db
+      .query("events")
+      .withIndex("by_status", (q) => q.eq("status", "published"))
+      .collect();
+
+    const publicEvents = events.filter(
+      (e) => e.visibility === "public" && e.lifecycle !== "cancelled",
+    );
+
+    return await Promise.all(
+      publicEvents.map(async (event) => {
+        let coverImageUrl: string | null = null;
+        if (event.coverImageId) {
+          coverImageUrl = await ctx.storage.getUrl(event.coverImageId);
+        }
+        return { ...event, coverImageUrl };
+      }),
+    );
+  },
+});
+
 export const update = mutation({
   args: {
     id: v.id("events"),
@@ -124,6 +149,7 @@ export const update = mutation({
       city: v.optional(v.string()),
       state: v.optional(v.string()),
       zip: v.optional(v.string()),
+      primary: v.optional(v.boolean()),
     }))),
     coverImageId: v.optional(v.id("_storage")),
     status: v.optional(

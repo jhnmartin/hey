@@ -23,7 +23,7 @@ export default function DashboardLayout({
           <AppSidebar />
           <SidebarInset>
             <DashboardHeader />
-            <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 p-4 pt-0">
+            <div className="flex w-full flex-1 flex-col gap-4 p-4">
               {children}
             </div>
           </SidebarInset>

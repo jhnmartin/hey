@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useSignUp } from "@clerk/nextjs"
 import { useMutation } from "convex/react"
 import { api } from "@repo/backend/convex/_generated/api"
+import { IconEye, IconEyeOff } from "@tabler/icons-react"
 
 type Role = "attendee" | "organizer"
 
@@ -20,6 +21,7 @@ export default function SignupPage() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [code, setCode] = useState("")
   const [verifying, setVerifying] = useState(false)
   const [error, setError] = useState("")
@@ -179,13 +181,23 @@ export default function SignupPage() {
           </div>
           <div>
             <label className="text-sm font-medium">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="bg-background mt-1 h-10 w-full rounded-md border px-3"
-              required
-            />
+            <div className="relative mt-1">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="bg-background h-10 w-full rounded-md border px-3 pr-10"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="text-muted-foreground hover:text-foreground absolute right-0 top-0 flex h-10 w-10 items-center justify-center"
+                tabIndex={-1}
+              >
+                {showPassword ? <IconEyeOff className="size-4" /> : <IconEye className="size-4" />}
+              </button>
+            </div>
           </div>
           <button
             type="submit"

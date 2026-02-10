@@ -66,6 +66,7 @@ export default function CreateEventPage() {
             city: venue.city,
             state: venue.state,
             zip: venue.zip,
+            primary: true,
           }],
         }),
       })
@@ -77,7 +78,7 @@ export default function CreateEventPage() {
   }
 
   return (
-    <div className="flex flex-1 flex-col justify-center gap-6">
+    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center gap-6">
       <SetPageTitle title="Create Event" />
       <div className="bg-background/80 sticky top-16 z-10 flex items-center justify-between py-4 backdrop-blur-sm">
         <h1 className="text-5xl font-bold">get started</h1>

@@ -117,6 +117,7 @@ export default defineSchema({
       city: v.optional(v.string()),
       state: v.optional(v.string()),
       zip: v.optional(v.string()),
+      primary: v.optional(v.boolean()),
     }))),
     coverImageId: v.optional(v.id("_storage")),
     status: v.union(

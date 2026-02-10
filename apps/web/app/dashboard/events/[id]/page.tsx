@@ -4,11 +4,33 @@ import { useState, useEffect, useRef } from "react"
 import { useParams } from "next/navigation"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@repo/backend/convex/_generated/api"
-import { IconLoader2 } from "@tabler/icons-react"
+import { format } from "date-fns"
+import { IconCalendar, IconGripVertical, IconLoader2, IconPhoto, IconX } from "@tabler/icons-react"
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core"
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import { VenueAutocomplete, type VenueResult } from "@/components/venue-autocomplete"
 import { SetPageTitle } from "@/components/page-title-context"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Calendar } from "@/components/ui/calendar"
 import { Label } from "@/components/ui/label"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
@@ -17,6 +39,94 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
+
+function tsToDate(ts?: number): Date | undefined {
+  return ts ? new Date(ts) : undefined
+}
+
+function tsToTime(ts?: number): string {
+  if (!ts) return ""
+  const d = new Date(ts)
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
+}
+
+function combineDateAndTime(date: Date, time: string): number {
+  const d = new Date(date)
+  if (time) {
+    const [hours, minutes] = time.split(":").map(Number)
+    d.setHours(hours!, minutes!, 0, 0)
+  }
+  return d.getTime()
+}
+
+type Venue = { name: string; address?: string; city?: string; state?: string; zip?: string; primary?: boolean }
+
+function SortableVenueItem({
+  venue,
+  onRemove,
+  onMakePrimary,
+}: {
+  venue: Venue
+  onRemove: () => void
+  onMakePrimary: () => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: venue.name })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="bg-background flex items-center gap-3 rounded-md border px-3 py-2"
+    >
+      <button
+        type="button"
+        className="text-muted-foreground hover:text-foreground shrink-0 cursor-grab active:cursor-grabbing"
+        {...attributes}
+        {...listeners}
+      >
+        <IconGripVertical className="size-4" />
+      </button>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium">{venue.name}</p>
+        <p className="text-muted-foreground truncate text-xs">
+          {[venue.address, venue.city, venue.state, venue.zip].filter(Boolean).join(", ")}
+        </p>
+      </div>
+      {venue.primary ? (
+        <Badge variant="default" className="shrink-0">Primary</Badge>
+      ) : (
+        <button
+          type="button"
+          onClick={onMakePrimary}
+          className="text-muted-foreground hover:text-foreground shrink-0 text-xs underline"
+        >
+          Make primary
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={onRemove}
+        className="text-muted-foreground hover:text-foreground shrink-0"
+      >
+        <IconX className="size-4" />
+      </button>
+    </div>
+  )
+}
 
 export default function EventEditPage() {
   const { id } = useParams<{ id: string }>()
@@ -37,6 +147,13 @@ export default function EventEditPage() {
   const [visibility, setVisibility] = useState("")
   const [ageRestriction, setAgeRestriction] = useState("")
   const [capacity, setCapacity] = useState("")
+  const [venues, setVenues] = useState<Venue[]>([])
+  const [startDate, setStartDate] = useState<Date | undefined>()
+  const [startTime, setStartTime] = useState("")
+  const [endDate, setEndDate] = useState<Date | undefined>()
+  const [endTime, setEndTime] = useState("")
+  const [doorsTime, setDoorsTime] = useState("")
+  const [showDoors, setShowDoors] = useState(false)
 
   // Track which fields the user has manually edited
   const touched = useRef(new Set<string>())
@@ -60,6 +177,21 @@ export default function EventEditPage() {
       setVisibility(event.visibility ?? "public")
       setAgeRestriction(event.ageRestriction ?? "all_ages")
       setCapacity(event.capacity?.toString() ?? "")
+      setVenues(event.venues ?? [])
+      setStartDate(tsToDate(event.startDate))
+      setStartTime(tsToTime(event.startDate))
+      if (event.endDate) {
+        setEndDate(tsToDate(event.endDate))
+        setEndTime(tsToTime(event.endDate))
+      } else if (event.startDate) {
+        const nextDay = new Date(event.startDate)
+        nextDay.setDate(nextDay.getDate() + 1)
+        nextDay.setHours(2, 0, 0, 0)
+        setEndDate(nextDay)
+        setEndTime("02:00")
+      }
+      setDoorsTime(tsToTime(event.doorsOpen))
+      setShowDoors(!!event.doorsOpen)
       setInitialized(true)
     } else {
       // Reactively fill AI-generated fields the user hasn't touched
@@ -93,6 +225,17 @@ export default function EventEditPage() {
         visibility: (visibility as "public" | "private") || undefined,
         ageRestriction: (ageRestriction as "all_ages" | "18_plus" | "21_plus") || undefined,
         capacity: capacity ? Number(capacity) : undefined,
+        startDate: startDate ? combineDateAndTime(startDate, startTime) : undefined,
+        endDate: endDate ? combineDateAndTime(endDate, endTime) : undefined,
+        doorsOpen: showDoors && doorsTime && startDate ? combineDateAndTime(startDate, doorsTime) : undefined,
+        venues: venues.length > 0 ? venues.map((v) => ({
+          name: v.name,
+          address: v.address || undefined,
+          city: v.city || undefined,
+          state: v.state || undefined,
+          zip: v.zip || undefined,
+          primary: v.primary || undefined,
+        })) : undefined,
       })
     } catch (error) {
       console.error("Failed to save:", error)
@@ -142,15 +285,32 @@ export default function EventEditPage() {
     )
   }
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e
+    if (!over || active.id === over.id) return
+
+    const oldIndex = venues.findIndex((v) => v.name === active.id)
+    const newIndex = venues.findIndex((v) => v.name === over.id)
+    const reordered = arrayMove(venues, oldIndex, newIndex).map((v, i) => ({
+      ...v,
+      primary: i === 0,
+    }))
+    setVenues(reordered)
+  }
+
   const aiStatus = event.aiEnrichmentStatus
-  const venue = event.venues?.[0]
 
   return (
     <>
       <SetPageTitle title={event.name} />
 
       {/* Header with actions */}
-      <div className="bg-background/80 sticky top-16 z-10 flex items-center justify-between py-4 backdrop-blur-sm">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className={`rounded-md px-2.5 py-0.5 text-xs font-medium capitalize ${event.status === "published" ? "bg-green-600/20 text-green-500" : "bg-muted text-muted-foreground"}`}>
             {event.status}
@@ -188,224 +348,349 @@ export default function EventEditPage() {
         </div>
       )}
 
-      {/* Event Info */}
-      <div className="bg-muted/50 rounded-xl p-6">
-        <h3 className="mb-4 font-semibold">Event Info</h3>
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="name" className="mb-2 block text-sm font-medium">Name</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => { markTouched("name"); setName(e.target.value) }}
-            />
+      {/* Two-column grid */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Left column — image + main content */}
+        <div className="space-y-4 lg:col-span-2">
+          {/* Cover Image */}
+          <div className="bg-muted/50 flex aspect-video items-center justify-center rounded-xl">
+            {event.coverImageUrl ? (
+              <img
+                src={event.coverImageUrl}
+                alt=""
+                className="size-full rounded-xl object-cover"
+              />
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <IconPhoto className="text-muted-foreground size-10" />
+                <p className="text-muted-foreground text-sm">Cover image</p>
+              </div>
+            )}
           </div>
-          <div>
-            <Label htmlFor="tagline" className="mb-2 block text-sm font-medium">Tagline</Label>
-            <Input
-              id="tagline"
-              placeholder="A short tagline for your event"
-              value={tagline}
-              onChange={(e) => { markTouched("tagline"); setTagline(e.target.value) }}
-            />
-          </div>
-        </div>
-      </div>
 
-      {/* SEO */}
-      <div className="bg-muted/50 rounded-xl p-6">
-        <h3 className="mb-4 font-semibold">SEO</h3>
-        <div className="space-y-4">
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <Label htmlFor="seoTitle" className="text-sm font-medium">SEO Title</Label>
-              <span className="text-muted-foreground text-xs">{seoTitle.length}/70</span>
+          {/* Event Info */}
+          <div className="bg-muted/50 rounded-xl p-6">
+            <h3 className="mb-4 font-semibold">Event Info</h3>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="name" className="mb-2 block text-sm font-medium">Name</Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => { markTouched("name"); setName(e.target.value) }}
+                />
+              </div>
+              <div>
+                <Label htmlFor="tagline" className="mb-2 block text-sm font-medium">Short Description</Label>
+                <Input
+                  id="tagline"
+                  placeholder="A short description for your event"
+                  value={tagline}
+                  onChange={(e) => { markTouched("tagline"); setTagline(e.target.value) }}
+                />
+              </div>
             </div>
-            <Input
-              id="seoTitle"
-              placeholder="SEO-optimized title for search engines"
-              value={seoTitle}
-              onChange={(e) => { markTouched("seoTitle"); setSeoTitle(e.target.value) }}
-            />
           </div>
-          <div>
-            <div className="mb-2 flex items-center justify-between">
-              <Label htmlFor="seoDescription" className="text-sm font-medium">SEO Description</Label>
-              <span className="text-muted-foreground text-xs">{seoDescription.length}/160</span>
+
+          {/* Venues */}
+          <div className="bg-muted/50 rounded-xl p-6">
+            <h3 className="mb-4 font-semibold">Venues</h3>
+            <div className="space-y-3">
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={venues.map((v) => v.name)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {venues.map((v, i) => (
+                    <SortableVenueItem
+                      key={v.name}
+                      venue={v}
+                      onRemove={() => {
+                        const remaining = venues.filter((_, j) => j !== i)
+                        if (v.primary && remaining.length > 0) {
+                          remaining[0] = { ...remaining[0]!, primary: true }
+                        }
+                        setVenues(remaining)
+                      }}
+                      onMakePrimary={() => {
+                        const updated = venues.map((venue, j) => ({
+                          ...venue,
+                          primary: j === i,
+                        }))
+                        const newPrimary = updated[i]!
+                        const rest = updated.filter((_, j) => j !== i)
+                        setVenues([newPrimary, ...rest])
+                      }}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+              <VenueAutocomplete
+                onSelect={(result) => {
+                  setVenues([...venues, {
+                    name: result.venueName,
+                    address: result.address,
+                    city: result.city,
+                    state: result.state,
+                    zip: result.zip,
+                    primary: venues.length === 0,
+                  }])
+                }}
+              />
             </div>
-            <Textarea
-              id="seoDescription"
-              placeholder="Meta description for search results"
-              rows={2}
-              value={seoDescription}
-              onChange={(e) => { markTouched("seoDescription"); setSeoDescription(e.target.value) }}
-            />
+          </div>
+
+          {/* Description */}
+          <div className="bg-muted/50 rounded-xl p-6">
+            <h3 className="mb-4 font-semibold">Description</h3>
+            <div>
+              <Label htmlFor="richDescription" className="mb-2 block text-sm font-medium">
+                Marketing Description
+              </Label>
+              <p className="text-muted-foreground mb-2 text-xs">
+                AI-generated from your summary. Edit as needed.
+              </p>
+              <Textarea
+                id="richDescription"
+                rows={8}
+                value={richDescription}
+                onChange={(e) => { markTouched("richDescription"); setRichDescription(e.target.value) }}
+              />
+            </div>
+          </div>
+
+          {/* SEO */}
+          <div className="bg-muted/50 rounded-xl p-6">
+            <h3 className="mb-4 font-semibold">SEO</h3>
+            <div className="space-y-4">
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <Label htmlFor="seoTitle" className="text-sm font-medium">SEO Title</Label>
+                  <span className="text-muted-foreground text-xs">{seoTitle.length}/70</span>
+                </div>
+                <Input
+                  id="seoTitle"
+                  placeholder="SEO-optimized title for search engines"
+                  value={seoTitle}
+                  onChange={(e) => { markTouched("seoTitle"); setSeoTitle(e.target.value) }}
+                />
+              </div>
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <Label htmlFor="seoDescription" className="text-sm font-medium">SEO Description</Label>
+                  <span className="text-muted-foreground text-xs">{seoDescription.length}/160</span>
+                </div>
+                <Textarea
+                  id="seoDescription"
+                  placeholder="Meta description for search results"
+                  rows={2}
+                  value={seoDescription}
+                  onChange={(e) => { markTouched("seoDescription"); setSeoDescription(e.target.value) }}
+                />
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Description */}
-      <div className="bg-muted/50 rounded-xl p-6">
-        <h3 className="mb-4 font-semibold">Description</h3>
+        {/* Right column — metadata */}
         <div className="space-y-4">
-          <div>
-            <Label htmlFor="richDescription" className="mb-2 block text-sm font-medium">
-              Marketing Description
-            </Label>
-            <p className="text-muted-foreground mb-2 text-xs">
-              AI-generated from your summary. Edit as needed.
-            </p>
-            <Textarea
-              id="richDescription"
-              rows={8}
-              value={richDescription}
-              onChange={(e) => { markTouched("richDescription"); setRichDescription(e.target.value) }}
-            />
+          {/* Date/Time */}
+          <div className="bg-muted/50 rounded-xl p-6">
+            <h3 className="mb-4 font-semibold">Date & Time</h3>
+            <div className="space-y-4">
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <Label className="mb-2 block text-sm font-medium">Start Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !startDate && "text-muted-foreground",
+                        )}
+                      >
+                        <IconCalendar className="mr-2 size-4" />
+                        {startDate ? format(startDate, "PPP") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="w-28">
+                  <Label className="mb-2 block text-sm font-medium">Time</Label>
+                  <Input
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <Label className="mb-2 block text-sm font-medium">End Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal",
+                          !endDate && "text-muted-foreground",
+                        )}
+                      >
+                        <IconCalendar className="mr-2 size-4" />
+                        {endDate ? format(endDate, "PPP") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="w-28">
+                  <Label className="mb-2 block text-sm font-medium">Time</Label>
+                  <Input
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                  />
+                </div>
+              </div>
+              {showDoors ? (
+                <div>
+                  <Label className="mb-2 block text-sm font-medium">Doors Open</Label>
+                  <Input
+                    type="time"
+                    value={doorsTime}
+                    onChange={(e) => setDoorsTime(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { setShowDoors(false); setDoorsTime("") }}
+                    className="text-muted-foreground hover:text-foreground mt-2 text-xs underline"
+                  >
+                    Remove door time
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowDoors(true)}
+                  className="text-muted-foreground hover:text-foreground text-sm underline"
+                >
+                  + Set door time
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Classification */}
-      <div className="bg-muted/50 rounded-xl p-6">
-        <h3 className="mb-4 font-semibold">Classification</h3>
-        <div className="space-y-4">
-          <div>
-            <Label className="mb-2 block text-sm font-medium">Event Type (schema.org)</Label>
-            <Select
-              value={schemaEventType}
-              onValueChange={(v) => { markTouched("schemaEventType"); setSchemaEventType(v) }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select event type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="MusicEvent">Music Event</SelectItem>
-                <SelectItem value="DanceEvent">Dance Event</SelectItem>
-                <SelectItem value="Festival">Festival</SelectItem>
-                <SelectItem value="SocialEvent">Social Event</SelectItem>
-                <SelectItem value="ComedyEvent">Comedy Event</SelectItem>
-                <SelectItem value="TheaterEvent">Theater Event</SelectItem>
-                <SelectItem value="EducationEvent">Education Event</SelectItem>
-                <SelectItem value="Event">Other Event</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Classification */}
+          <div className="bg-muted/50 rounded-xl p-6">
+            <h3 className="mb-4 font-semibold">Classification</h3>
+            <div className="space-y-4">
+              <div>
+                <Label className="mb-2 block text-sm font-medium">Event Type</Label>
+                <Select
+                  value={schemaEventType}
+                  onValueChange={(v) => { markTouched("schemaEventType"); setSchemaEventType(v) }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select event type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MusicEvent">Music Event</SelectItem>
+                    <SelectItem value="DanceEvent">Dance Event</SelectItem>
+                    <SelectItem value="Festival">Festival</SelectItem>
+                    <SelectItem value="SocialEvent">Social Event</SelectItem>
+                    <SelectItem value="ComedyEvent">Comedy Event</SelectItem>
+                    <SelectItem value="TheaterEvent">Theater Event</SelectItem>
+                    <SelectItem value="EducationEvent">Education Event</SelectItem>
+                    <SelectItem value="Event">Other Event</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="category" className="mb-2 block text-sm font-medium">Category</Label>
+                <Input
+                  id="category"
+                  placeholder="e.g. Live Music, DJ Night"
+                  value={category}
+                  onChange={(e) => { markTouched("category"); setCategory(e.target.value) }}
+                />
+              </div>
+              <div>
+                <Label htmlFor="tags" className="mb-2 block text-sm font-medium">Tags</Label>
+                <p className="text-muted-foreground mb-2 text-xs">Comma-separated</p>
+                <Input
+                  id="tags"
+                  placeholder="e.g. house music, downtown"
+                  value={tags}
+                  onChange={(e) => { markTouched("tags"); setTags(e.target.value) }}
+                />
+              </div>
+            </div>
           </div>
-          <div>
-            <Label htmlFor="category" className="mb-2 block text-sm font-medium">Category</Label>
-            <Input
-              id="category"
-              placeholder="e.g. Live Music, DJ Night, Club Night"
-              value={category}
-              onChange={(e) => { markTouched("category"); setCategory(e.target.value) }}
-            />
-          </div>
-          <div>
-            <Label htmlFor="tags" className="mb-2 block text-sm font-medium">Tags</Label>
-            <p className="text-muted-foreground mb-2 text-xs">Comma-separated discovery tags</p>
-            <Input
-              id="tags"
-              placeholder="e.g. house music, downtown, late night"
-              value={tags}
-              onChange={(e) => { markTouched("tags"); setTags(e.target.value) }}
-            />
-          </div>
-        </div>
-      </div>
 
-      {/* Date/Time */}
-      <div className="bg-muted/50 rounded-xl p-6">
-        <h3 className="mb-4 font-semibold">Date & Time</h3>
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="bg-background rounded-lg p-4">
-            <p className="text-muted-foreground text-sm">Start</p>
-            <p className="font-medium">
-              {event.startDate
-                ? new Date(event.startDate).toLocaleString("en-US", {
-                    month: "short", day: "numeric", year: "numeric",
-                    hour: "numeric", minute: "2-digit",
-                  })
-                : "Not set"}
-            </p>
-          </div>
-          <div className="bg-background rounded-lg p-4">
-            <p className="text-muted-foreground text-sm">End</p>
-            <p className="font-medium">
-              {event.endDate
-                ? new Date(event.endDate).toLocaleString("en-US", {
-                    month: "short", day: "numeric", year: "numeric",
-                    hour: "numeric", minute: "2-digit",
-                  })
-                : "Not set"}
-            </p>
-          </div>
-          <div className="bg-background rounded-lg p-4">
-            <p className="text-muted-foreground text-sm">Doors Open</p>
-            <p className="font-medium">
-              {event.doorsOpen
-                ? new Date(event.doorsOpen).toLocaleTimeString("en-US", {
-                    hour: "numeric", minute: "2-digit",
-                  })
-                : "Not set"}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Venue */}
-      {venue && (
-        <div className="bg-muted/50 rounded-xl p-6">
-          <h3 className="mb-4 font-semibold">Venue</h3>
-          <p className="text-sm font-medium">{venue.name}</p>
-          <p className="text-muted-foreground text-sm">
-            {[venue.address, venue.city, venue.state, venue.zip].filter(Boolean).join(", ")}
-          </p>
-        </div>
-      )}
-
-      {/* Settings */}
-      <div className="bg-muted/50 rounded-xl p-6">
-        <h3 className="mb-4 font-semibold">Settings</h3>
-        <div className="grid gap-4 md:grid-cols-3">
-          <div>
-            <Label className="mb-2 block text-sm font-medium">Visibility</Label>
-            <Select
-              value={visibility}
-              onValueChange={(v) => { markTouched("visibility"); setVisibility(v) }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="public">Public</SelectItem>
-                <SelectItem value="private">Private</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="mb-2 block text-sm font-medium">Age Restriction</Label>
-            <Select
-              value={ageRestriction}
-              onValueChange={(v) => { markTouched("ageRestriction"); setAgeRestriction(v) }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all_ages">All Ages</SelectItem>
-                <SelectItem value="18_plus">18+</SelectItem>
-                <SelectItem value="21_plus">21+</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="capacity" className="mb-2 block text-sm font-medium">Capacity</Label>
-            <Input
-              id="capacity"
-              type="number"
-              placeholder="Max attendees"
-              value={capacity}
-              onChange={(e) => { markTouched("capacity"); setCapacity(e.target.value) }}
-            />
+          {/* Settings */}
+          <div className="bg-muted/50 rounded-xl p-6">
+            <h3 className="mb-4 font-semibold">Settings</h3>
+            <div className="space-y-4">
+              <div>
+                <Label className="mb-2 block text-sm font-medium">Visibility</Label>
+                <Select
+                  value={visibility}
+                  onValueChange={(v) => { markTouched("visibility"); setVisibility(v) }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="public">Public</SelectItem>
+                    <SelectItem value="private">Private</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="mb-2 block text-sm font-medium">Age Restriction</Label>
+                <Select
+                  value={ageRestriction}
+                  onValueChange={(v) => { markTouched("ageRestriction"); setAgeRestriction(v) }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all_ages">All Ages</SelectItem>
+                    <SelectItem value="18_plus">18+</SelectItem>
+                    <SelectItem value="21_plus">21+</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="capacity" className="mb-2 block text-sm font-medium">Capacity</Label>
+                <Input
+                  id="capacity"
+                  type="number"
+                  placeholder="Max attendees"
+                  value={capacity}
+                  onChange={(e) => { markTouched("capacity"); setCapacity(e.target.value) }}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
