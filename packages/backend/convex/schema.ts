@@ -233,4 +233,16 @@ export default defineSchema({
     .index("by_event", ["eventId"])
     .index("by_org", ["orgId"])
     .index("by_event_org", ["eventId", "orgId"]),
+  savedEvents: defineTable({
+    profileId: v.id("profiles"),
+    eventId: v.id("events"),
+  })
+    .index("by_profile", ["profileId"])
+    .index("by_profile_event", ["profileId", "eventId"]),
+  rsvps: defineTable({
+    profileId: v.id("profiles"),
+    eventId: v.id("events"),
+  })
+    .index("by_profile", ["profileId"])
+    .index("by_profile_event", ["profileId", "eventId"]),
 });

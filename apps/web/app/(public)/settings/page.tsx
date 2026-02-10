@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { SettingsContent } from "./settings-content"
 
 export const metadata: Metadata = {
-  title: "Settings",
+  title: "Preferences",
 }
 
 export default function UserSettingsPage() {

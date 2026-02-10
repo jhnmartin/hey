@@ -60,13 +60,16 @@ export function PublicNavUser() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <button className="relative rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <Avatar className="size-8">
             {profile?.avatarUrl && (
               <AvatarImage src={profile.avatarUrl} alt={profile.name} />
             )}
             <AvatarFallback className="text-xs">{initials}</AvatarFallback>
           </Avatar>
+          {profile && (!profile.avatarUrl || !profile.city) && (
+            <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-red-500 ring-2 ring-background" />
+          )}
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
@@ -85,7 +88,7 @@ export function PublicNavUser() {
         <DropdownMenuItem asChild>
           <Link href="/settings">
             <IconSettings className="mr-2 size-4" />
-            Settings
+            Preferences
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

@@ -134,6 +134,26 @@ export const listPublic = query({
   },
 });
 
+export const listByIds = query({
+  args: { ids: v.array(v.id("events")) },
+  handler: async (ctx, args) => {
+    const events = await Promise.all(
+      args.ids.map((id) => ctx.db.get(id)),
+    );
+    return await Promise.all(
+      events
+        .filter((e): e is NonNullable<typeof e> => e !== null)
+        .map(async (event) => {
+          let coverImageUrl: string | null = null;
+          if (event.coverImageId) {
+            coverImageUrl = await ctx.storage.getUrl(event.coverImageId);
+          }
+          return { ...event, coverImageUrl };
+        }),
+    );
+  },
+});
+
 export const update = mutation({
   args: {
     id: v.id("events"),
