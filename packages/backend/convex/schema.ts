@@ -28,6 +28,7 @@ export default defineSchema({
     ),
     email: v.string(),
     avatarUrl: v.optional(v.string()),
+    description: v.optional(v.string()),
     ownerId: v.id("profiles"),
   }).index("by_owner", ["ownerId"]),
   memberships: defineTable({
@@ -148,6 +149,16 @@ export default defineSchema({
     seriesId: v.optional(v.id("eventSeries")),
     seriesOrder: v.optional(v.number()),
     isFreeEvent: v.optional(v.boolean()),
+    seoTitle: v.optional(v.string()),
+    seoDescription: v.optional(v.string()),
+    richDescription: v.optional(v.string()),
+    schemaEventType: v.optional(v.string()),
+    aiEnrichmentStatus: v.optional(v.union(
+      v.literal("pending"),
+      v.literal("processing"),
+      v.literal("completed"),
+      v.literal("failed"),
+    )),
   })
     .index("by_org", ["ownerOrgId"])
     .index("by_status", ["status"])

@@ -1,4 +1,5 @@
 import { query, mutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
 export const create = mutation({
@@ -63,7 +64,11 @@ export const create = mutation({
       ...args,
       lifecycle: "upcoming",
       createdBy: profile._id,
+      aiEnrichmentStatus: "pending",
     });
+
+    // Schedule AI enrichment to run immediately
+    await ctx.scheduler.runAfter(0, internal.aiEnrichment.enrichEvent, { eventId });
 
     return eventId;
   },
@@ -143,6 +148,17 @@ export const update = mutation({
       v.literal("recurring"),
     )),
     isFreeEvent: v.optional(v.boolean()),
+    seoTitle: v.optional(v.string()),
+    seoDescription: v.optional(v.string()),
+    richDescription: v.optional(v.string()),
+    schemaEventType: v.optional(v.string()),
+    category: v.optional(v.string()),
+    aiEnrichmentStatus: v.optional(v.union(
+      v.literal("pending"),
+      v.literal("processing"),
+      v.literal("completed"),
+      v.literal("failed"),
+    )),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -176,6 +192,36 @@ export const update = mutation({
       }
     }
     await ctx.db.patch(id, updates);
+  },
+});
+
+export const retryEnrichment = mutation({
+  args: { id: v.id("events") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!profile) throw new Error("Profile not found");
+
+    const event = await ctx.db.get(args.id);
+    if (!event) throw new Error("Event not found");
+
+    const membership = await ctx.db
+      .query("memberships")
+      .withIndex("by_profile_org", (q) =>
+        q.eq("profileId", profile._id).eq("orgId", event.ownerOrgId),
+      )
+      .unique();
+    if (!membership) throw new Error("Not a member of this organization");
+
+    await ctx.db.patch(args.id, { aiEnrichmentStatus: "pending" });
+    await ctx.scheduler.runAfter(0, internal.aiEnrichment.enrichEvent, { eventId: args.id });
   },
 });
 

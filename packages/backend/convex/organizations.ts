@@ -80,6 +80,7 @@ export const update = mutation({
     ),
     email: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
+    description: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();

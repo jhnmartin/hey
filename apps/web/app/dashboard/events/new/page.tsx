@@ -51,6 +51,7 @@ export default function CreateEventPage() {
     try {
       const eventId = await createEvent({
         name: name.trim(),
+        description: description.trim() || undefined,
         status: "draft",
         visibility: "public",
         ageRestriction: "all_ages",
