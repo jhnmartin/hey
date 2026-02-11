@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useSignIn, useSignUp } from "@clerk/nextjs"
-import { useMutation } from "convex/react"
+import { useMutation, useConvexAuth } from "convex/react"
 import { api } from "@repo/backend/convex/_generated/api"
 import { IconEye, IconEyeOff, IconBrandGoogle, IconBrandApple } from "@tabler/icons-react"
 import {
@@ -48,7 +48,10 @@ export function EventSignupDialog({
   const [mfaCode, setMfaCode] = useState("")
   const [mfaStrategy, setMfaStrategy] = useState<"totp" | "phone_code" | "email_code">("totp")
 
+  const { isAuthenticated } = useConvexAuth()
   const isLoaded = signInLoaded && signUpLoaded
+
+  const [pendingFinish, setPendingFinish] = useState(false)
 
   function reset() {
     setEmail("")
@@ -60,27 +63,38 @@ export function EventSignupDialog({
     setLoading(false)
     setNeedsMfa(false)
     setMfaCode("")
+    setPendingFinish(false)
   }
 
-  async function performPendingAction() {
-    if (!pendingAction) return
-    try {
-      if (pendingAction.type === "save") {
-        await toggleSave({ eventId: pendingAction.eventId as any })
-      } else {
-        await toggleRsvp({ eventId: pendingAction.eventId as any })
+  // Wait for Convex auth to propagate after setActive, then create profile + perform action
+  useEffect(() => {
+    if (!pendingFinish || !isAuthenticated) return
+    setPendingFinish(false)
+    ;(async () => {
+      try {
+        await getOrCreate({ role: "attendee" })
+        if (pendingAction) {
+          try {
+            if (pendingAction.type === "save") {
+              await toggleSave({ eventId: pendingAction.eventId as any })
+            } else {
+              await toggleRsvp({ eventId: pendingAction.eventId as any })
+            }
+          } catch {
+            // Best-effort — event page will show correct state on next query
+          }
+        }
+      } catch {
+        // Profile creation failed — will be retried on next page load
       }
-    } catch {
-      // Best-effort — event page will show correct state on next query
-    }
-  }
+      reset()
+      onOpenChange(false)
+    })()
+  }, [pendingFinish, isAuthenticated])
 
   async function finishAuth(sessionId: string, setActive: typeof setSignInActive) {
     await setActive!({ session: sessionId })
-    await getOrCreate({ role: "attendee" })
-    await performPendingAction()
-    reset()
-    onOpenChange(false)
+    setPendingFinish(true)
   }
 
   const signUpWith = (strategy: "oauth_google" | "oauth_apple") => {
