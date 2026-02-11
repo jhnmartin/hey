@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useParams } from "next/navigation"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@repo/backend/convex/_generated/api"
 import { format } from "date-fns"
-import { IconCalendar, IconGripVertical, IconLoader2, IconPhoto, IconX } from "@tabler/icons-react"
+import { IconCalendar, IconCrop, IconGripVertical, IconLoader2, IconPhoto, IconReplace, IconTrash, IconX } from "@tabler/icons-react"
+import { EventImageCropDialog } from "@/components/event-image-crop-dialog"
 import {
   DndContext,
   closestCenter,
@@ -134,6 +135,7 @@ export default function EventEditPage() {
   const updateEvent = useMutation(api.events.update)
   const publishEvent = useMutation(api.events.publish)
   const retryEnrichment = useMutation(api.events.retryEnrichment)
+  const generateUploadUrl = useMutation(api.storage.generateUploadUrl)
 
   // Editable fields
   const [name, setName] = useState("")
@@ -154,6 +156,16 @@ export default function EventEditPage() {
   const [endTime, setEndTime] = useState("")
   const [doorsTime, setDoorsTime] = useState("")
   const [showDoors, setShowDoors] = useState(false)
+
+  // Cover image state
+  const [coverImageId, setCoverImageId] = useState<string | null>(null)
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null)
+  const [cropDialogOpen, setCropDialogOpen] = useState(false)
+  const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null)
+  const [originalImageSrc, setOriginalImageSrc] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const coverInputRef = useRef<HTMLInputElement>(null)
+  const [dragOver, setDragOver] = useState(false)
 
   // Track which fields the user has manually edited
   const touched = useRef(new Set<string>())
@@ -197,6 +209,8 @@ export default function EventEditPage() {
       }
       setDoorsTime(tsToTime(event.doorsOpen))
       setShowDoors(!!event.doorsOpen)
+      setCoverImageId(event.coverImageId ?? null)
+      setCoverPreviewUrl(event.coverImageUrl ?? null)
       setInitialized(true)
     } else {
       // Reactively fill AI-generated fields the user hasn't touched
@@ -213,6 +227,52 @@ export default function EventEditPage() {
     touched.current.add(field)
   }
 
+  const handleCoverFile = useCallback((file: File) => {
+    if (!file.type.startsWith("image/")) return
+    if (file.size > 5 * 1024 * 1024) return
+    // Revoke previous original if replacing
+    if (originalImageSrc) URL.revokeObjectURL(originalImageSrc)
+    const url = URL.createObjectURL(file)
+    setOriginalImageSrc(url)
+    setSelectedImageSrc(url)
+    setCropDialogOpen(true)
+  }, [originalImageSrc])
+
+  const handleCropConfirm = useCallback(
+    async (blob: Blob) => {
+      setUploading(true)
+      try {
+        const url = await generateUploadUrl()
+        const result = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "image/jpeg" },
+          body: blob,
+        })
+        const { storageId } = await result.json()
+        setCoverImageId(storageId)
+        setCoverPreviewUrl(URL.createObjectURL(blob))
+      } catch (error) {
+        console.error("Upload failed:", error)
+      } finally {
+        setUploading(false)
+      }
+    },
+    [generateUploadUrl],
+  )
+
+  const handleEditCrop = useCallback(() => {
+    if (!originalImageSrc) return
+    setSelectedImageSrc(originalImageSrc)
+    setCropDialogOpen(true)
+  }, [originalImageSrc])
+
+  const handleRemoveCover = useCallback(() => {
+    if (originalImageSrc) URL.revokeObjectURL(originalImageSrc)
+    setCoverImageId(null)
+    setCoverPreviewUrl(null)
+    setOriginalImageSrc(null)
+  }, [originalImageSrc])
+
   const handleSave = async () => {
     if (!event) return
     setSaving(true)
@@ -221,6 +281,7 @@ export default function EventEditPage() {
         id: event._id,
         name: name.trim() || undefined,
         tagline: tagline.trim() || undefined,
+        ...(coverImageId ? { coverImageId: coverImageId as any } : {}),
         seoTitle: seoTitle.trim() || undefined,
         seoDescription: seoDescription.trim() || undefined,
         richDescription: richDescription.trim() || undefined,
@@ -349,24 +410,103 @@ export default function EventEditPage() {
       )}
 
       {/* Two-column grid */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-2">
         {/* Left column — image + main content */}
-        <div className="space-y-4 lg:col-span-2">
+        <div className="space-y-4">
           {/* Cover Image */}
-          <div className="bg-muted/50 flex aspect-video items-center justify-center rounded-xl">
-            {event.coverImageUrl ? (
+          {coverPreviewUrl ? (
+            <div className="relative aspect-square overflow-hidden rounded-xl">
               <img
-                src={event.coverImageUrl}
+                src={coverPreviewUrl}
                 alt=""
-                className="size-full rounded-xl object-cover"
+                className="size-full rounded-xl object-contain"
               />
-            ) : (
-              <div className="flex flex-col items-center gap-2">
-                <IconPhoto className="text-muted-foreground size-10" />
-                <p className="text-muted-foreground text-sm">Cover image</p>
+              <div className="absolute top-2 right-2 flex gap-1">
+                {originalImageSrc && (
+                  <button
+                    type="button"
+                    onClick={handleEditCrop}
+                    className="bg-background/80 hover:bg-background rounded-full p-1.5"
+                    title="Edit crop"
+                  >
+                    <IconCrop className="size-4" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => coverInputRef.current?.click()}
+                  className="bg-background/80 hover:bg-background rounded-full p-1.5"
+                  title="Replace image"
+                >
+                  <IconReplace className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRemoveCover}
+                  className="bg-background/80 hover:bg-background rounded-full p-1.5"
+                  title="Remove image"
+                >
+                  <IconTrash className="size-4" />
+                </button>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => coverInputRef.current?.click()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") coverInputRef.current?.click()
+              }}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault()
+                setDragOver(false)
+                const file = e.dataTransfer.files[0]
+                if (file) handleCoverFile(file)
+              }}
+              className={cn(
+                "flex aspect-square cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors",
+                dragOver
+                  ? "border-primary bg-primary/5"
+                  : "border-muted-foreground/25 hover:border-muted-foreground/50",
+                uploading && "pointer-events-none opacity-50",
+              )}
+            >
+              {uploading ? (
+                <div className="flex items-center gap-2">
+                  <IconLoader2 className="text-muted-foreground size-5 animate-spin" />
+                  <p className="text-muted-foreground text-sm">Uploading...</p>
+                </div>
+              ) : (
+                <>
+                  <IconPhoto className="text-muted-foreground mb-2 size-10" />
+                  <p className="text-muted-foreground text-sm">Click or drag to upload cover image</p>
+                  <p className="text-muted-foreground/60 mt-1 text-xs">Recommended: 1080 × 1080 · Max 5MB</p>
+                </>
+              )}
+            </div>
+          )}
+          <input
+            ref={coverInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) handleCoverFile(file)
+              e.target.value = ""
+            }}
+          />
+          {selectedImageSrc && (
+            <EventImageCropDialog
+              open={cropDialogOpen}
+              onOpenChange={setCropDialogOpen}
+              imageSrc={selectedImageSrc}
+              onConfirm={handleCropConfirm}
+            />
+          )}
 
           {/* Event Info */}
           <div className="bg-muted/50 rounded-xl p-6">
