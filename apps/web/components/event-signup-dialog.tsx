@@ -291,7 +291,7 @@ export function EventSignupDialog({
               type="button"
               onClick={async () => {
                 try {
-                  await signUp.prepareEmailAddressVerification({ strategy: "email_code" })
+                  await signUp!.prepareEmailAddressVerification({ strategy: "email_code" })
                   setError("")
                 } catch (err: any) {
                   setError(err.errors?.[0]?.longMessage ?? "Failed to resend code")
