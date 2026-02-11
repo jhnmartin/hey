@@ -137,10 +137,14 @@ export function EventSignupDialog({
 
       // Try signup
       try {
-        await signUp.create({
+        const result = await signUp.create({
           emailAddress: email,
           password,
         })
+        if (result.status === "complete") {
+          await finishAuth(result.createdSessionId!, setSignUpActive)
+          return
+        }
         await signUp.prepareEmailAddressVerification({
           strategy: "email_code",
         })

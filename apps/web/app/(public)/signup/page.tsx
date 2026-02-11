@@ -44,12 +44,19 @@ export default function SignupPage() {
       setError("")
       try {
         const [firstName, ...rest] = name.split(" ")
-        await signUp.create({
+        const result = await signUp.create({
           firstName: firstName ?? "",
           lastName: rest.join(" "),
           emailAddress: email,
           password,
         })
+
+        if (result.status === "complete") {
+          await setActive({ session: result.createdSessionId })
+          await getOrCreate({ role: role! })
+          router.push("/auth-callback")
+          return
+        }
 
         await signUp.prepareEmailAddressVerification({
           strategy: "email_code",
