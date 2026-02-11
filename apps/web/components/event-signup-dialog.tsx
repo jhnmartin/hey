@@ -338,6 +338,7 @@ export function EventSignupDialog({
                   </button>
                 </div>
               </div>
+              <div id="clerk-captcha" />
               <button
                 type="submit"
                 disabled={loading}
