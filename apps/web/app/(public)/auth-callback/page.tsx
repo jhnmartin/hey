@@ -2,12 +2,11 @@
 
 import { useEffect, useState, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useQuery, useMutation } from "convex/react"
-import { useAuth } from "@clerk/nextjs"
+import { useQuery, useMutation, useConvexAuth } from "convex/react"
 import { api } from "@repo/backend/convex/_generated/api"
 
 export default function AuthCallbackPage() {
-  const { isSignedIn } = useAuth()
+  const { isAuthenticated, isLoading } = useConvexAuth()
   const profile = useQuery(api.profiles.get)
   const memberships = useQuery(api.memberships.listByProfile)
   const pendingInvites = useQuery(api.invites.listPendingForEmail)
@@ -25,14 +24,14 @@ export default function AuthCallbackPage() {
 
   // Ensure profile exists (handles OAuth users who skip signup's getOrCreate call)
   useEffect(() => {
-    if (isSignedIn && profile === null && !ensuredProfile.current) {
+    if (isAuthenticated && profile === null && !ensuredProfile.current) {
       ensuredProfile.current = true
       const role = searchParams.get("role")
       getOrCreate(
         role === "organizer" ? { role: "organizer" } : { role: "attendee" },
       )
     }
-  }, [isSignedIn, profile, searchParams, getOrCreate])
+  }, [isAuthenticated, profile, searchParams, getOrCreate])
 
   useEffect(() => {
     if (!minTimePassed || !profile) return
@@ -63,12 +62,12 @@ export default function AuthCallbackPage() {
     return () => clearTimeout(timer)
   }, [minTimePassed, profile, memberships, pendingInvites, router])
 
-  // If somehow unauthenticated, bounce to login
+  // If unauthenticated after Convex auth finishes loading, bounce to login
   useEffect(() => {
-    if (isSignedIn === false) {
+    if (!isLoading && !isAuthenticated) {
       router.replace("/login")
     }
-  }, [isSignedIn, router])
+  }, [isLoading, isAuthenticated, router])
 
   return (
     <div

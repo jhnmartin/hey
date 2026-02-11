@@ -4,15 +4,12 @@ import { useState, useCallback } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useSignUp } from "@clerk/nextjs"
-import { useMutation } from "convex/react"
-import { api } from "@repo/backend/convex/_generated/api"
 import { IconEye, IconEyeOff } from "@tabler/icons-react"
 
 type Role = "attendee" | "organizer"
 
 export default function SignupPage() {
   const { signUp, setActive, isLoaded } = useSignUp()
-  const getOrCreate = useMutation(api.profiles.getOrCreate)
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -53,8 +50,7 @@ export default function SignupPage() {
 
         if (result.status === "complete") {
           await setActive({ session: result.createdSessionId })
-          await getOrCreate({ role: role! })
-          router.push("/auth-callback")
+          router.push(`/auth-callback?role=${role}`)
           return
         }
 
@@ -82,8 +78,7 @@ export default function SignupPage() {
 
         if (result.status === "complete") {
           await setActive({ session: result.createdSessionId })
-          await getOrCreate({ role })
-          router.push("/auth-callback")
+          router.push(`/auth-callback?role=${role}`)
         }
       } catch (err: any) {
         setError(err.errors?.[0]?.longMessage ?? "Verification failed")
