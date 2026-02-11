@@ -16,6 +16,11 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
+  // MFA state — matches mobile-pro pattern
+  const [needsMfa, setNeedsMfa] = useState(false)
+  const [mfaCode, setMfaCode] = useState("")
+  const [mfaStrategy, setMfaStrategy] = useState<"totp" | "phone_code" | "email_code">("totp")
+
   const signInWith = (strategy: "oauth_google" | "oauth_apple") => {
     if (!isLoaded) return
     signIn.authenticateWithRedirect({
@@ -32,14 +37,33 @@ export default function LoginPage() {
       setLoading(true)
       setError("")
       try {
-        const result = await signIn.create({
+        let result = await signIn.create({
           identifier: email,
           password,
         })
 
+        if (result.status === "needs_first_factor") {
+          result = await signIn.attemptFirstFactor({
+            strategy: "password",
+            password,
+          })
+        }
+
         if (result.status === "complete") {
-          await setActive({ session: result.createdSessionId })
+          await setActive!({ session: result.createdSessionId })
           router.push("/auth-callback")
+        } else if (result.status === "needs_second_factor") {
+          const factors = result.supportedSecondFactors ?? []
+          const hasEmail = factors.some((f: any) => f.strategy === "email_code")
+          const hasPhone = factors.some((f: any) => f.strategy === "phone_code")
+          const strategy = hasEmail ? "email_code" : hasPhone ? "phone_code" : "totp"
+          setMfaStrategy(strategy)
+          if (strategy === "email_code" || strategy === "phone_code") {
+            await signIn.prepareSecondFactor({ strategy })
+          }
+          setNeedsMfa(true)
+        } else {
+          setError("Sign in could not be completed. Please try again.")
         }
       } catch (err: any) {
         setError(err.errors?.[0]?.longMessage ?? "Sign in failed")
@@ -49,6 +73,71 @@ export default function LoginPage() {
     },
     [isLoaded, email, password],
   )
+
+  const onMfaVerify = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault()
+      if (!isLoaded) return
+      setLoading(true)
+      setError("")
+      try {
+        const result = await signIn.attemptSecondFactor({
+          strategy: mfaStrategy,
+          code: mfaCode,
+        })
+
+        if (result.status === "complete") {
+          await setActive!({ session: result.createdSessionId })
+          router.push("/auth-callback")
+        } else {
+          setError("Verification could not be completed. Please try again.")
+        }
+      } catch (err: any) {
+        setError(err.errors?.[0]?.longMessage ?? "Verification failed")
+      } finally {
+        setLoading(false)
+      }
+    },
+    [isLoaded, mfaCode, mfaStrategy],
+  )
+
+  if (needsMfa) {
+    return (
+      <div className="mx-auto flex min-h-[70vh] max-w-sm flex-col items-center justify-center px-4">
+        <h1 className="text-2xl font-bold">Two-factor authentication</h1>
+        <p className="text-muted-foreground mt-2 text-center text-sm">
+          {mfaStrategy === "email_code"
+            ? "Enter the code sent to your email."
+            : mfaStrategy === "phone_code"
+              ? "Enter the code sent to your phone."
+              : "Enter the code from your authenticator app."}
+        </p>
+
+        <form onSubmit={onMfaVerify} className="mt-8 w-full space-y-4">
+          {error && <p className="text-sm text-red-500">{error}</p>}
+
+          <div>
+            <label className="text-sm font-medium">Code</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={mfaCode}
+              onChange={(e) => setMfaCode(e.target.value)}
+              className="bg-background mt-1 h-10 w-full rounded-md border px-3 text-center text-lg tracking-widest"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-primary text-primary-foreground flex h-10 w-full items-center justify-center rounded-md text-sm font-medium disabled:opacity-50"
+          >
+            {loading ? "Verifying..." : "Verify"}
+          </button>
+        </form>
+      </div>
+    )
+  }
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-sm flex-col items-center justify-center px-4">
