@@ -287,6 +287,20 @@ export function EventSignupDialog({
             >
               {loading ? "Verifying..." : "Verify Email"}
             </button>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await signUp.prepareEmailAddressVerification({ strategy: "email_code" })
+                  setError("")
+                } catch (err: any) {
+                  setError(err.errors?.[0]?.longMessage ?? "Failed to resend code")
+                }
+              }}
+              className="text-muted-foreground hover:text-foreground w-full text-center text-sm"
+            >
+              Didn&apos;t get the code? Resend
+            </button>
           </form>
         ) : (
           <div className="space-y-4">
