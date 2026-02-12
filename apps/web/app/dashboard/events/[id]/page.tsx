@@ -41,6 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { toast } from "sonner"
 
 function tsToDate(ts?: number): Date | undefined {
   return ts ? new Date(ts) : undefined
@@ -273,38 +274,45 @@ export default function EventEditPage() {
     setOriginalImageSrc(null)
   }, [originalImageSrc])
 
+  const saveEvent = async () => {
+    if (!event) throw new Error("No event")
+    await updateEvent({
+      id: event._id,
+      name: name.trim() || undefined,
+      tagline: tagline.trim() || undefined,
+      ...(coverImageId ? { coverImageId: coverImageId as any } : {}),
+      seoTitle: seoTitle.trim() || undefined,
+      seoDescription: seoDescription.trim() || undefined,
+      richDescription: richDescription.trim() || undefined,
+      schemaEventType: schemaEventType || undefined,
+      category: category.trim() || undefined,
+      tags: tags.trim() ? tags.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean) : undefined,
+      visibility: (visibility as "public" | "private") || undefined,
+      ageRestriction: (ageRestriction as "all_ages" | "18_plus" | "21_plus") || undefined,
+      capacity: capacity ? Number(capacity) : undefined,
+      startDate: startDate ? combineDateAndTime(startDate, startTime) : undefined,
+      endDate: endDate ? combineDateAndTime(endDate, endTime) : undefined,
+      doorsOpen: showDoors && doorsTime && startDate ? combineDateAndTime(startDate, doorsTime) : undefined,
+      venues: venues.length > 0 ? venues.map((v) => ({
+        name: v.name,
+        address: v.address || undefined,
+        city: v.city || undefined,
+        state: v.state || undefined,
+        zip: v.zip || undefined,
+        primary: v.primary || undefined,
+      })) : undefined,
+    })
+  }
+
   const handleSave = async () => {
     if (!event) return
     setSaving(true)
     try {
-      await updateEvent({
-        id: event._id,
-        name: name.trim() || undefined,
-        tagline: tagline.trim() || undefined,
-        ...(coverImageId ? { coverImageId: coverImageId as any } : {}),
-        seoTitle: seoTitle.trim() || undefined,
-        seoDescription: seoDescription.trim() || undefined,
-        richDescription: richDescription.trim() || undefined,
-        schemaEventType: schemaEventType || undefined,
-        category: category.trim() || undefined,
-        tags: tags.trim() ? tags.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean) : undefined,
-        visibility: (visibility as "public" | "private") || undefined,
-        ageRestriction: (ageRestriction as "all_ages" | "18_plus" | "21_plus") || undefined,
-        capacity: capacity ? Number(capacity) : undefined,
-        startDate: startDate ? combineDateAndTime(startDate, startTime) : undefined,
-        endDate: endDate ? combineDateAndTime(endDate, endTime) : undefined,
-        doorsOpen: showDoors && doorsTime && startDate ? combineDateAndTime(startDate, doorsTime) : undefined,
-        venues: venues.length > 0 ? venues.map((v) => ({
-          name: v.name,
-          address: v.address || undefined,
-          city: v.city || undefined,
-          state: v.state || undefined,
-          zip: v.zip || undefined,
-          primary: v.primary || undefined,
-        })) : undefined,
-      })
+      await saveEvent()
+      toast.success("Draft saved")
     } catch (error) {
       console.error("Failed to save:", error)
+      toast.error("Failed to save event")
     } finally {
       setSaving(false)
     }
@@ -314,11 +322,13 @@ export default function EventEditPage() {
     if (!event) return
     setPublishing(true)
     try {
-      // Save first, then publish
-      await handleSave()
+      await saveEvent()
       await publishEvent({ id: event._id })
+      toast.success("Event published!")
     } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to publish"
       console.error("Failed to publish:", error)
+      toast.error(message)
     } finally {
       setPublishing(false)
     }
