@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 
 export const create = mutation({
   args: {
@@ -298,9 +298,9 @@ export const publish = mutation({
 
     // Enforce required fields for publishing
     // Series events (recurring) may not require venues at creation time
-    if (!event.startDate) throw new Error("Start date is required to publish");
+    if (!event.startDate) throw new ConvexError("Start date is required to publish");
     if (!event.seriesId && (!event.venues || event.venues.length === 0)) {
-      throw new Error("At least one venue is required to publish");
+      throw new ConvexError("At least one venue is required to publish");
     }
 
     await ctx.db.patch(args.id, { status: "published" });
