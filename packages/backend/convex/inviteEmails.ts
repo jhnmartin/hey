@@ -13,7 +13,7 @@ export const sendInviteEmail = internalAction({
     if (!apiKey) return; // skip silently in dev without Resend
 
     const appUrl = process.env.APP_URL ?? "http://localhost:3000";
-    const signupUrl = `${appUrl}/signup?role=organizer`;
+    const signupUrl = `${appUrl}/signup?role=organizer&email=${encodeURIComponent(args.email)}`;
     const loginUrl = `${appUrl}/login`;
 
     const res = await fetch("https://api.resend.com/emails", {
