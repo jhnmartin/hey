@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque } from "next/font/google";
-import localFont from "next/font/local";
+import { Bricolage_Grotesque, JetBrains_Mono, Libre_Bodoni } from "next/font/google";
 import "./globals.css";
 import ConvexClientProvider from "./ConvexClientProvider";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -10,9 +9,13 @@ const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
   variable: "--font-sans",
 });
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+});
+const libreBodoni = Libre_Bodoni({
+  subsets: ["latin"],
+  variable: "--font-serif",
 });
 
 export const viewport: Viewport = {
@@ -64,7 +67,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${bricolage.variable} ${geistMono.variable}`}>
+      <body className={`${bricolage.variable} ${jetbrainsMono.variable} ${libreBodoni.variable}`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

@@ -4,22 +4,22 @@
 
 @layer base {
   :root {
-    --color-background: #1c1615;
-    --color-foreground: #e1dfd3;
-    --color-card: #171110;
-    --color-card-foreground: #e1dfd3;
-    --color-primary: #fb5536;
-    --color-primary-foreground: #e1dfd3;
-    --color-secondary: #cfcdc2;
-    --color-secondary-foreground: #171110;
-    --color-muted: #322a29;
-    --color-muted-foreground: #9b978f;
-    --color-accent: #1c1615;
-    --color-accent-foreground: #e1dfd3;
-    --color-destructive: #2b8393;
-    --color-destructive-foreground: #171110;
-    --color-border: #322a29;
-    --color-input: #322a29;
-    --color-ring: #fb5536;
+    --color-background: #0a0a0a;
+    --color-foreground: #f5f5f5;
+    --color-card: #121212;
+    --color-card-foreground: #f5f5f5;
+    --color-primary: #7c9082;
+    --color-primary-foreground: #000000;
+    --color-secondary: #1a1a1a;
+    --color-secondary-foreground: #f5f5f5;
+    --color-muted: #1a1a1a;
+    --color-muted-foreground: #a0a0a0;
+    --color-accent: #36443a;
+    --color-accent-foreground: #f5f5f5;
+    --color-destructive: #ef4444;
+    --color-destructive-foreground: #ffffff;
+    --color-border: #2a2a2a;
+    --color-input: #121212;
+    --color-ring: #7c9082;
   }
 }
