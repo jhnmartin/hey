@@ -1,12 +1,12 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@repo/backend/convex/_generated/api"
 import { ConvexError } from "convex/values"
 import { format } from "date-fns"
-import { IconCalendar, IconCrop, IconGripVertical, IconLoader2, IconPhoto, IconReplace, IconTrash, IconX } from "@tabler/icons-react"
+import { IconCalendar, IconCrop, IconGripVertical, IconLoader2, IconPhoto, IconReplace, IconTrash, IconTrashX, IconX } from "@tabler/icons-react"
 import { EventImageCropDialog } from "@/components/event-image-crop-dialog"
 import {
   DndContext,
@@ -41,6 +41,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
@@ -133,9 +141,11 @@ function SortableVenueItem({
 
 export default function EventEditPage() {
   const { id } = useParams<{ id: string }>()
+  const router = useRouter()
   const event = useQuery(api.events.get, id ? { id: id as any } : "skip")
   const updateEvent = useMutation(api.events.update)
   const publishEvent = useMutation(api.events.publish)
+  const deleteEvent = useMutation(api.events.remove)
   const retryEnrichment = useMutation(api.events.retryEnrichment)
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl)
 
@@ -174,6 +184,8 @@ export default function EventEditPage() {
   const [initialized, setInitialized] = useState(false)
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -340,6 +352,20 @@ export default function EventEditPage() {
     await retryEnrichment({ id: event._id })
   }
 
+  const handleDelete = async () => {
+    if (!event) return
+    setDeleting(true)
+    try {
+      await deleteEvent({ id: event._id })
+      toast.success("Event deleted")
+      router.push("/dashboard/events")
+    } catch (error) {
+      const message = error instanceof ConvexError ? (error.data as string) : "Failed to delete event"
+      toast.error(message)
+      setDeleting(false)
+    }
+  }
+
   if (event === undefined) {
     return (
       <>
@@ -387,6 +413,9 @@ export default function EventEditPage() {
           <span className={`rounded-md px-2.5 py-0.5 text-xs font-medium capitalize ${event.status === "published" ? "bg-green-600/20 text-green-500" : "bg-muted text-muted-foreground"}`}>
             {event.status}
           </span>
+          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteDialogOpen(true)}>
+            <IconTrashX className="size-4" />
+          </Button>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={handleSave} disabled={saving}>
@@ -845,6 +874,26 @@ export default function EventEditPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Delete event</DialogTitle>
+            <DialogDescription>
+              This will permanently delete &quot;{event.name}&quot; and all associated data including tickets, RSVPs, and collaborators. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
