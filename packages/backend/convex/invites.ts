@@ -1,4 +1,5 @@
 import { query, mutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
 export const send = mutation({
@@ -61,13 +62,28 @@ export const send = mutation({
       throw new Error("A pending invite already exists for this email");
     }
 
-    return await ctx.db.insert("invites", {
+    const inviteId = await ctx.db.insert("invites", {
       orgId: args.orgId,
       email,
       role: args.role,
       invitedBy: profile._id,
       status: "pending",
     });
+
+    // Schedule invite email
+    const org = await ctx.db.get(args.orgId);
+    await ctx.scheduler.runAfter(
+      0,
+      internal.inviteEmails.sendInviteEmail,
+      {
+        email,
+        orgName: org?.name ?? "an organization",
+        role: args.role,
+        inviterName: profile.name ?? "A team member",
+      },
+    );
+
+    return inviteId;
   },
 });
 
@@ -214,5 +230,49 @@ export const revoke = mutation({
     }
 
     await ctx.db.delete(args.inviteId);
+  },
+});
+
+export const resend = mutation({
+  args: { inviteId: v.id("invites") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!profile) throw new Error("Profile not found");
+
+    const invite = await ctx.db.get(args.inviteId);
+    if (!invite || invite.status !== "pending") {
+      throw new Error("Invite not found or no longer pending");
+    }
+
+    // Verify caller is owner or admin
+    const callerMembership = await ctx.db
+      .query("memberships")
+      .withIndex("by_profile_org", (q) =>
+        q.eq("profileId", profile._id).eq("orgId", invite.orgId),
+      )
+      .unique();
+    if (!callerMembership || callerMembership.role === "member") {
+      throw new Error("Only owners and admins can resend invites");
+    }
+
+    const org = await ctx.db.get(invite.orgId);
+    await ctx.scheduler.runAfter(
+      0,
+      internal.inviteEmails.sendInviteEmail,
+      {
+        email: invite.email,
+        orgName: org?.name ?? "an organization",
+        role: invite.role,
+        inviterName: profile.name ?? "A team member",
+      },
+    );
   },
 });

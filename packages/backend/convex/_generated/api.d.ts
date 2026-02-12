@@ -14,6 +14,7 @@ import type * as eventCollaborators from "../eventCollaborators.js";
 import type * as eventSeries from "../eventSeries.js";
 import type * as eventTags from "../eventTags.js";
 import type * as events from "../events.js";
+import type * as inviteEmails from "../inviteEmails.js";
 import type * as invites from "../invites.js";
 import type * as memberships from "../memberships.js";
 import type * as organizations from "../organizations.js";
@@ -38,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   eventSeries: typeof eventSeries;
   eventTags: typeof eventTags;
   events: typeof events;
+  inviteEmails: typeof inviteEmails;
   invites: typeof invites;
   memberships: typeof memberships;
   organizations: typeof organizations;
