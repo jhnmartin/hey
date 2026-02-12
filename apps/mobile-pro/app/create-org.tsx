@@ -5,26 +5,76 @@ import {
   TextInput,
   ScrollView,
   Pressable,
+  Image,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useMutation } from "convex/react";
 import { api } from "@repo/backend/convex/_generated/api";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
+import * as ImagePicker from "expo-image-picker";
 
 type OrgRole = "venue" | "performer" | "promoter";
 
 const roles: OrgRole[] = ["venue", "performer", "promoter"];
 
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
 export default function CreateOrgScreen() {
   const router = useRouter();
   const createOrg = useMutation(api.organizations.create);
+  const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
 
   const [name, setName] = useState("");
   const [role, setRole] = useState<OrgRole>("venue");
   const [email, setEmail] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
+  const [avatarStorageId, setAvatarStorageId] = useState<string | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  async function pickAndUploadAvatar() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (result.canceled || !result.assets[0]) return;
+
+    setUploading(true);
+    try {
+      const uri = result.assets[0].uri;
+      setAvatarPreview(uri);
+
+      const response = await fetch(uri);
+      const blob = await response.blob();
+
+      const uploadUrl = await generateUploadUrl();
+      const uploadResult = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": "image/jpeg" },
+        body: blob,
+      });
+      const { storageId } = await uploadResult.json();
+      setAvatarStorageId(storageId);
+    } catch {
+      Alert.alert("Error", "Failed to upload avatar.");
+      setAvatarPreview(null);
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function handleCreate() {
     if (!name || !email) return;
@@ -33,7 +83,7 @@ export default function CreateOrgScreen() {
       name,
       role,
       email,
-      ...(avatarUrl ? { avatarUrl } : {}),
+      ...(avatarStorageId ? { avatarStorageId: avatarStorageId as any } : {}),
     });
     setSaving(false);
     router.back();
@@ -64,6 +114,46 @@ export default function CreateOrgScreen() {
         style={{ flex: 1, paddingHorizontal: 24 }}
         showsVerticalScrollIndicator={false}
       >
+        <View style={{ alignItems: "center", marginBottom: 20 }}>
+          <Pressable onPress={pickAndUploadAvatar} disabled={uploading}>
+            {avatarPreview ? (
+              <Image
+                source={{ uri: avatarPreview }}
+                style={{ width: 80, height: 80, borderRadius: 40 }}
+              />
+            ) : (
+              <View
+                style={{
+                  width: 80, height: 80, borderRadius: 40,
+                  backgroundColor: "#18181b", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                {name ? (
+                  <Text style={{ color: "#71717a", fontSize: 24 }}>
+                    {getInitials(name)}
+                  </Text>
+                ) : (
+                  <Ionicons name="camera-outline" size={28} color="#71717a" />
+                )}
+              </View>
+            )}
+            {uploading && (
+              <View
+                style={{
+                  position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+                  borderRadius: 40, backgroundColor: "rgba(0,0,0,0.5)",
+                  alignItems: "center", justifyContent: "center",
+                }}
+              >
+                <ActivityIndicator color="#fff" />
+              </View>
+            )}
+          </Pressable>
+          <Text style={{ color: "#71717a", fontSize: 12, marginTop: 6 }}>
+            Tap to add avatar
+          </Text>
+        </View>
+
         <View style={{ marginBottom: 14 }}>
           <Text style={{ color: "#a1a1aa", fontSize: 13, marginBottom: 6 }}>
             Name
@@ -125,27 +215,6 @@ export default function CreateOrgScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             placeholder="contact@org.com"
-            placeholderTextColor="#71717a"
-            style={{
-              backgroundColor: "#18181b",
-              borderRadius: 12,
-              paddingHorizontal: 16,
-              paddingVertical: 14,
-              color: "#fff",
-              fontSize: 15,
-            }}
-          />
-        </View>
-
-        <View style={{ marginBottom: 14 }}>
-          <Text style={{ color: "#a1a1aa", fontSize: 13, marginBottom: 6 }}>
-            Avatar URL (optional)
-          </Text>
-          <TextInput
-            value={avatarUrl}
-            onChangeText={setAvatarUrl}
-            autoCapitalize="none"
-            placeholder="https://..."
             placeholderTextColor="#71717a"
             style={{
               backgroundColor: "#18181b",

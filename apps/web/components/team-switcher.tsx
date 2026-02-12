@@ -93,11 +93,19 @@ export function TeamSwitcher() {
               >
                 {activeOrg ? (
                   <>
-                    <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                      {React.createElement(orgRoleIcons[activeOrg.role]!, {
-                        className: "size-4",
-                      })}
-                    </div>
+                    {activeOrg.avatarUrl ? (
+                      <img
+                        src={activeOrg.avatarUrl}
+                        alt={activeOrg.name}
+                        className="aspect-square size-8 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                        {React.createElement(orgRoleIcons[activeOrg.role]!, {
+                          className: "size-4",
+                        })}
+                      </div>
+                    )}
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-medium">
                         {activeOrg.name}
@@ -135,9 +143,17 @@ export function TeamSwitcher() {
                     onClick={() => setActiveOrg(org)}
                     className="gap-2 p-2"
                   >
-                    <div className="flex size-6 items-center justify-center rounded-md border">
-                      <Icon className="size-3.5 shrink-0" />
-                    </div>
+                    {org.avatarUrl ? (
+                      <img
+                        src={org.avatarUrl}
+                        alt={org.name}
+                        className="size-6 rounded-md object-cover"
+                      />
+                    ) : (
+                      <div className="flex size-6 items-center justify-center rounded-md border">
+                        <Icon className="size-3.5 shrink-0" />
+                      </div>
+                    )}
                     {org.name}
                     <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
                   </DropdownMenuItem>

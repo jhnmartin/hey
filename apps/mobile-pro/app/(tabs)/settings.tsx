@@ -6,16 +6,29 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
+  Image,
+  Alert,
 } from "react-native";
 import { useQuery, useMutation } from "convex/react";
 import { useClerk } from "@clerk/clerk-expo";
 import { api } from "@repo/backend/convex/_generated/api";
 import { StatusBar } from "expo-status-bar";
+import * as ImagePicker from "expo-image-picker";
+
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
 
 export default function SettingsScreen() {
   const { signOut } = useClerk();
   const profile = useQuery(api.profiles.get);
   const updateProfile = useMutation(api.profiles.update);
+  const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -24,6 +37,7 @@ export default function SettingsScreen() {
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [bio, setBio] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -35,6 +49,42 @@ export default function SettingsScreen() {
       setBio(profile.bio ?? "");
     }
   }, [profile]);
+
+  async function pickAndUploadAvatar() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (result.canceled || !result.assets[0]) return;
+    if (!profile) return;
+
+    setUploading(true);
+    try {
+      const uri = result.assets[0].uri;
+      const response = await fetch(uri);
+      const blob = await response.blob();
+
+      const uploadUrl = await generateUploadUrl();
+      const uploadResult = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": "image/jpeg" },
+        body: blob,
+      });
+      const { storageId } = await uploadResult.json();
+
+      await updateProfile({
+        id: profile._id,
+        avatarStorageId: storageId,
+      });
+    } catch {
+      Alert.alert("Error", "Failed to upload avatar.");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function handleSave() {
     if (!profile) return;
@@ -66,6 +116,38 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text className="mb-6 text-2xl font-bold text-white">Profile</Text>
+
+        <View className="mb-4 items-center">
+          <Pressable onPress={pickAndUploadAvatar} disabled={uploading}>
+            {profile?.avatarUrl ? (
+              <Image
+                source={{ uri: profile.avatarUrl }}
+                style={{ width: 80, height: 80, borderRadius: 40 }}
+              />
+            ) : (
+              <View
+                style={{ width: 80, height: 80, borderRadius: 40 }}
+                className="items-center justify-center bg-zinc-800"
+              >
+                <Text className="text-2xl text-zinc-400">
+                  {getInitials(name || "?")}
+                </Text>
+              </View>
+            )}
+            {uploading && (
+              <View
+                style={{
+                  position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+                  borderRadius: 40, backgroundColor: "rgba(0,0,0,0.5)",
+                  alignItems: "center", justifyContent: "center",
+                }}
+              >
+                <ActivityIndicator color="#fff" />
+              </View>
+            )}
+          </Pressable>
+          <Text className="mt-1 text-xs text-zinc-500">Tap to change</Text>
+        </View>
 
         <View className="mb-3">
           <Text className="mb-1 text-sm text-zinc-400">Name</Text>

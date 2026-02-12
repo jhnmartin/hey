@@ -7,12 +7,23 @@ export const get = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
 
-    return await ctx.db
+    const profile = await ctx.db
       .query("profiles")
       .withIndex("by_token", (q) =>
         q.eq("tokenIdentifier", identity.tokenIdentifier),
       )
       .unique();
+
+    if (!profile) return null;
+
+    // Resolve avatarStorageId to a URL, falling back to stored avatarUrl
+    let avatarUrl = profile.avatarUrl ?? null;
+    if (profile.avatarStorageId) {
+      const url = await ctx.storage.getUrl(profile.avatarStorageId);
+      if (url) avatarUrl = url;
+    }
+
+    return { ...profile, avatarUrl };
   },
 });
 
@@ -53,6 +64,7 @@ export const update = mutation({
     phone: v.optional(v.string()),
     bio: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
+    avatarStorageId: v.optional(v.id("_storage")),
     city: v.optional(v.string()),
     dateOfBirth: v.optional(v.string()),
     role: v.optional(
