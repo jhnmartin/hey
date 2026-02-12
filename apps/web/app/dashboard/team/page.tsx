@@ -30,6 +30,7 @@ export default function TeamPage() {
   )
   const sendInvite = useMutation(api.invites.send)
   const revokeInvite = useMutation(api.invites.revoke)
+  const resendInvite = useMutation(api.invites.resend)
 
   const [email, setEmail] = useState("")
   const [role, setRole] = useState<InviteRole>("member")
@@ -143,13 +144,24 @@ export default function TeamPage() {
                     Invited as {invite.role}
                   </p>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => revokeInvite({ inviteId: invite._id })}
-                >
-                  Revoke
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="cursor-pointer"
+                    onClick={() => resendInvite({ inviteId: invite._id })}
+                  >
+                    Resend
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="cursor-pointer"
+                    onClick={() => revokeInvite({ inviteId: invite._id })}
+                  >
+                    Revoke
+                  </Button>
+                </div>
               </div>
             ))}
           </div>

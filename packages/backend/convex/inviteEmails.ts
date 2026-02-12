@@ -30,8 +30,8 @@ export const sendInviteEmail = internalAction({
           <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 16px;">
             <h2 style="margin-bottom: 8px;">You're invited!</h2>
             <p>${args.inviterName} invited you to join <strong>${args.orgName}</strong> as ${args.role === "admin" ? "an admin" : "a member"}.</p>
-            <a href="${signupUrl}" style="display: inline-block; background: #000; color: #fff; padding: 12px 24px; border-radius: 6px; text-decoration: none; margin-top: 16px;">Accept Invite</a>
-            <p style="margin-top: 24px; font-size: 14px; color: #666;">Already have an account? <a href="${loginUrl}">Log in</a></p>
+            <a href="${signupUrl}" style="display: inline-block; background: #fe4624; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; margin-top: 16px; font-weight: 500;">Accept Invite</a>
+            <p style="margin-top: 24px; font-size: 14px; color: #999;">Already have an account? <a href="${loginUrl}" style="color: #fe4624;">Log in</a></p>
           </div>
         `,
       }),

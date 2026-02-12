@@ -232,3 +232,47 @@ export const revoke = mutation({
     await ctx.db.delete(args.inviteId);
   },
 });
+
+export const resend = mutation({
+  args: { inviteId: v.id("invites") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!profile) throw new Error("Profile not found");
+
+    const invite = await ctx.db.get(args.inviteId);
+    if (!invite || invite.status !== "pending") {
+      throw new Error("Invite not found or no longer pending");
+    }
+
+    // Verify caller is owner or admin
+    const callerMembership = await ctx.db
+      .query("memberships")
+      .withIndex("by_profile_org", (q) =>
+        q.eq("profileId", profile._id).eq("orgId", invite.orgId),
+      )
+      .unique();
+    if (!callerMembership || callerMembership.role === "member") {
+      throw new Error("Only owners and admins can resend invites");
+    }
+
+    const org = await ctx.db.get(invite.orgId);
+    await ctx.scheduler.runAfter(
+      0,
+      internal.inviteEmails.sendInviteEmail,
+      {
+        email: invite.email,
+        orgName: org?.name ?? "an organization",
+        role: invite.role,
+        inviterName: profile.name ?? "A team member",
+      },
+    );
+  },
+});
