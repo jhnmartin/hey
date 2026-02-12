@@ -1,4 +1,5 @@
 import { query, mutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
 export const send = mutation({
@@ -61,13 +62,28 @@ export const send = mutation({
       throw new Error("A pending invite already exists for this email");
     }
 
-    return await ctx.db.insert("invites", {
+    const inviteId = await ctx.db.insert("invites", {
       orgId: args.orgId,
       email,
       role: args.role,
       invitedBy: profile._id,
       status: "pending",
     });
+
+    // Schedule invite email
+    const org = await ctx.db.get(args.orgId);
+    await ctx.scheduler.runAfter(
+      0,
+      internal.inviteEmails.sendInviteEmail,
+      {
+        email,
+        orgName: org?.name ?? "an organization",
+        role: args.role,
+        inviterName: profile.name ?? "A team member",
+      },
+    );
+
+    return inviteId;
   },
 });
 
