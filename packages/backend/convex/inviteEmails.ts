@@ -23,7 +23,7 @@ export const sendInviteEmail = internalAction({
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Hey Thursday <onboarding@resend.dev>",
+        from: "Hey Thursday <noreply@updates.heythursday.app>",
         to: [args.email],
         subject: `You've been invited to join ${args.orgName} on Hey Thursday`,
         html: `
