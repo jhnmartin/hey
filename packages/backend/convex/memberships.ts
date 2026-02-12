@@ -23,7 +23,13 @@ export const listByProfile = query({
     const results = await Promise.all(
       memberships.map(async (m) => {
         const org = await ctx.db.get(m.orgId);
-        return org ? { membership: m, org } : null;
+        if (!org) return null;
+        let avatarUrl = org.avatarUrl ?? null;
+        if (org.avatarStorageId) {
+          const url = await ctx.storage.getUrl(org.avatarStorageId);
+          if (url) avatarUrl = url;
+        }
+        return { membership: m, org: { ...org, avatarUrl } };
       }),
     );
 
@@ -45,7 +51,13 @@ export const listByOrg = query({
     const results = await Promise.all(
       memberships.map(async (m) => {
         const profile = await ctx.db.get(m.profileId);
-        return profile ? { membership: m, profile } : null;
+        if (!profile) return null;
+        let avatarUrl = profile.avatarUrl ?? null;
+        if (profile.avatarStorageId) {
+          const url = await ctx.storage.getUrl(profile.avatarStorageId);
+          if (url) avatarUrl = url;
+        }
+        return { membership: m, profile: { ...profile, avatarUrl } };
       }),
     );
 

@@ -6,6 +6,7 @@ import { api } from "@repo/backend/convex/_generated/api"
 import { useOrg, orgRoleIcons } from "@/components/org-context"
 import { SetPageTitle } from "@/components/page-title-context"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { AvatarUploader } from "@/components/avatar-uploader"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -67,7 +68,7 @@ export default function OrganizationSettingsPage() {
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
   const [website, setWebsite] = useState("")
-  const [avatarUrl, setAvatarUrl] = useState("")
+  const [avatarStorageId, setAvatarStorageId] = useState<string | null>(null)
   const [description, setDescription] = useState("")
   const [street, setStreet] = useState("")
   const [city, setCity] = useState("")
@@ -87,7 +88,7 @@ export default function OrganizationSettingsPage() {
       setEmail(activeOrg.email)
       setPhone(activeOrg.phone ?? "")
       setWebsite(activeOrg.website ?? "")
-      setAvatarUrl(activeOrg.avatarUrl ?? "")
+      setAvatarStorageId((activeOrg as any).avatarStorageId ?? null)
       setDescription(activeOrg.description ?? "")
       setStreet(activeOrg.address?.street ?? "")
       setCity(activeOrg.address?.city ?? "")
@@ -111,7 +112,7 @@ export default function OrganizationSettingsPage() {
       email,
       ...(phone ? { phone } : {}),
       ...(website ? { website } : {}),
-      ...(avatarUrl ? { avatarUrl } : {}),
+      ...(avatarStorageId ? { avatarStorageId: avatarStorageId as any } : {}),
       ...(description ? { description } : {}),
       socialLinks: {
         ...(instagram ? { instagram } : {}),
@@ -165,27 +166,15 @@ export default function OrganizationSettingsPage() {
           {/* Avatar + header area */}
           <div className="bg-muted/50 rounded-xl p-6">
             <div className="flex items-center gap-4">
-              <Avatar className="size-16">
-                {avatarUrl && <AvatarImage src={avatarUrl} alt={name} />}
-                <AvatarFallback className="text-lg">
-                  {getInitials(name)}
-                </AvatarFallback>
-              </Avatar>
+              <AvatarUploader
+                storageId={avatarStorageId}
+                onUpload={setAvatarStorageId}
+                name={name}
+              />
               <div className="min-w-0 flex-1">
                 <h2 className="truncate text-xl font-semibold">{name}</h2>
                 <p className="text-muted-foreground text-sm">{email}</p>
               </div>
-            </div>
-            <div className="mt-4">
-              <Label htmlFor="avatarUrl" className="mb-2 block text-sm font-medium">
-                Avatar URL
-              </Label>
-              <Input
-                id="avatarUrl"
-                placeholder="https://example.com/avatar.jpg"
-                value={avatarUrl}
-                onChange={(e) => setAvatarUrl(e.target.value)}
-              />
             </div>
           </div>
 

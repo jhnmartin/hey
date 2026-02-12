@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Skeleton } from "@/components/ui/skeleton"
+import { AvatarUploader } from "@/components/avatar-uploader"
 
 export function ProfileForm() {
   const profile = useQuery(api.profiles.get)
@@ -19,6 +20,7 @@ export function ProfileForm() {
   const [city, setCity] = useState("")
   const [dateOfBirth, setDateOfBirth] = useState("")
   const [bio, setBio] = useState("")
+  const [avatarStorageId, setAvatarStorageId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -29,6 +31,7 @@ export function ProfileForm() {
       setCity(profile.city ?? "")
       setDateOfBirth(profile.dateOfBirth ?? "")
       setBio(profile.bio ?? "")
+      setAvatarStorageId(profile.avatarStorageId ?? null)
     }
   }, [profile])
 
@@ -45,6 +48,7 @@ export function ProfileForm() {
         city,
         dateOfBirth,
         bio,
+        ...(avatarStorageId ? { avatarStorageId: avatarStorageId as any } : {}),
       }),
       new Promise((r) => setTimeout(r, 1000)),
     ])
@@ -63,6 +67,13 @@ export function ProfileForm() {
     <form onSubmit={handleSave} className="bg-muted/50 rounded-xl p-6">
       <h2 className="font-semibold">Profile</h2>
       <div className="mt-4 space-y-3">
+        <div className="flex justify-center">
+          <AvatarUploader
+            storageId={avatarStorageId}
+            onUpload={setAvatarStorageId}
+            name={name}
+          />
+        </div>
         <div>
           <Label htmlFor="name">Name</Label>
           <Input

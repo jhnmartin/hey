@@ -57,6 +57,15 @@ export function OrgProvider({ children }: { children: ReactNode }) {
     setInitialOrgApplied(true)
   }, [orgs, activeOrg, searchParams, initialOrgApplied])
 
+  // Keep activeOrg in sync with fresh query data
+  useEffect(() => {
+    if (!activeOrg || orgs.length === 0) return
+    const fresh = orgs.find((o) => o._id === activeOrg._id)
+    if (fresh && fresh !== activeOrg) {
+      setActiveOrg(fresh)
+    }
+  }, [orgs, activeOrg])
+
   return (
     <OrgContext.Provider
       value={{ orgs, activeOrg, setActiveOrg }}

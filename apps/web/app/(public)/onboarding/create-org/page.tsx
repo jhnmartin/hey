@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { AvatarUploader } from "@/components/avatar-uploader"
 
 type OrgRole = "venue" | "performer" | "promoter"
 
@@ -24,7 +25,7 @@ export default function OnboardingCreateOrgPage() {
   const [name, setName] = useState("")
   const [role, setRole] = useState<OrgRole>("venue")
   const [email, setEmail] = useState("")
-  const [avatarUrl, setAvatarUrl] = useState("")
+  const [avatarStorageId, setAvatarStorageId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -34,7 +35,7 @@ export default function OnboardingCreateOrgPage() {
       name,
       role,
       email,
-      ...(avatarUrl ? { avatarUrl } : {}),
+      ...(avatarStorageId ? { avatarStorageId: avatarStorageId as any } : {}),
     })
     router.push("/dashboard")
   }
@@ -48,6 +49,13 @@ export default function OnboardingCreateOrgPage() {
         </p>
         <form onSubmit={handleSubmit} className="bg-muted/50 rounded-xl p-6">
           <div className="space-y-3">
+            <div className="flex justify-center">
+              <AvatarUploader
+                storageId={avatarStorageId}
+                onUpload={setAvatarStorageId}
+                name={name}
+              />
+            </div>
             <div>
               <Label htmlFor="name">Name</Label>
               <Input
@@ -79,15 +87,6 @@ export default function OnboardingCreateOrgPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="avatarUrl">Avatar URL (optional)</Label>
-              <Input
-                id="avatarUrl"
-                value={avatarUrl}
-                onChange={(e) => setAvatarUrl(e.target.value)}
                 className="mt-1"
               />
             </div>

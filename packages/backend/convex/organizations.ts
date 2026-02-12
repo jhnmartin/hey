@@ -11,6 +11,7 @@ export const create = mutation({
     ),
     email: v.string(),
     avatarUrl: v.optional(v.string()),
+    avatarStorageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -53,17 +54,37 @@ export const listByOwner = query({
       .unique();
     if (!profile) return [];
 
-    return await ctx.db
+    const orgs = await ctx.db
       .query("organizations")
       .withIndex("by_owner", (q) => q.eq("ownerId", profile._id))
       .collect();
+
+    return Promise.all(
+      orgs.map(async (org) => {
+        let avatarUrl = org.avatarUrl ?? null;
+        if (org.avatarStorageId) {
+          const url = await ctx.storage.getUrl(org.avatarStorageId);
+          if (url) avatarUrl = url;
+        }
+        return { ...org, avatarUrl };
+      }),
+    );
   },
 });
 
 export const get = query({
   args: { id: v.id("organizations") },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.id);
+    const org = await ctx.db.get(args.id);
+    if (!org) return null;
+
+    let avatarUrl = org.avatarUrl ?? null;
+    if (org.avatarStorageId) {
+      const url = await ctx.storage.getUrl(org.avatarStorageId);
+      if (url) avatarUrl = url;
+    }
+
+    return { ...org, avatarUrl };
   },
 });
 
@@ -82,6 +103,7 @@ export const update = mutation({
     phone: v.optional(v.string()),
     website: v.optional(v.string()),
     avatarUrl: v.optional(v.string()),
+    avatarStorageId: v.optional(v.id("_storage")),
     description: v.optional(v.string()),
     socialLinks: v.optional(v.object({
       instagram: v.optional(v.string()),
