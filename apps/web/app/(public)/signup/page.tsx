@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useSignUp } from "@clerk/nextjs"
@@ -23,6 +23,19 @@ export default function SignupPage() {
   const [verifying, setVerifying] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [resendCountdown, setResendCountdown] = useState(0)
+  const resendTimer = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    if (resendCountdown <= 0) {
+      if (resendTimer.current) clearInterval(resendTimer.current)
+      return
+    }
+    resendTimer.current = setInterval(() => {
+      setResendCountdown((c) => c - 1)
+    }, 1000)
+    return () => { if (resendTimer.current) clearInterval(resendTimer.current) }
+  }, [resendCountdown > 0])
 
   const signUpWith = (strategy: "oauth_google" | "oauth_apple") => {
     if (!isLoaded || !role) return
@@ -57,6 +70,7 @@ export default function SignupPage() {
         await signUp.prepareEmailAddressVerification({
           strategy: "email_code",
         })
+        setResendCountdown(30)
         setVerifying(true)
       } catch (err: any) {
         setError(err.errors?.[0]?.longMessage ?? "Sign up failed")
@@ -107,7 +121,28 @@ export default function SignupPage() {
           )}
 
           <div>
-            <label className="text-sm font-medium">Verification Code</label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">Verification Code</label>
+              {resendCountdown > 0 ? (
+                <span className="text-destructive text-xs">{resendCountdown}s</span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await signUp!.prepareEmailAddressVerification({ strategy: "email_code" })
+                      setResendCountdown(30)
+                      setError("")
+                    } catch (err: any) {
+                      setError(err.errors?.[0]?.longMessage ?? "Failed to resend code")
+                    }
+                  }}
+                  className="text-muted-foreground hover:text-foreground text-sm"
+                >
+                  Resend code
+                </button>
+              )}
+            </div>
             <input
               type="text"
               inputMode="numeric"
@@ -123,20 +158,6 @@ export default function SignupPage() {
             className="bg-primary text-primary-foreground flex h-10 w-full items-center justify-center rounded-md text-sm font-medium disabled:opacity-50"
           >
             {loading ? "Verifying..." : "Verify Email"}
-          </button>
-          <button
-            type="button"
-            onClick={async () => {
-              try {
-                await signUp!.prepareEmailAddressVerification({ strategy: "email_code" })
-                setError("")
-              } catch (err: any) {
-                setError(err.errors?.[0]?.longMessage ?? "Failed to resend code")
-              }
-            }}
-            className="text-muted-foreground hover:text-foreground w-full text-center text-sm"
-          >
-            Didn&apos;t get the code? Resend
           </button>
         </form>
       ) : !role ? (
