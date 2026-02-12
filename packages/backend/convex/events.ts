@@ -303,7 +303,7 @@ export const publish = mutation({
       throw new ConvexError("At least one venue is required to publish");
     }
 
-    await ctx.db.patch(args.id, { status: "published" });
+    await ctx.db.patch(args.id, { status: "published", publishedAt: Date.now() });
   },
 });
 

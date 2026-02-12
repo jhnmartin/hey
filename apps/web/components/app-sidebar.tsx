@@ -52,12 +52,12 @@ const data = {
     },
     {
       title: "Marketing",
-      url: "/dashboard/marketing/hey-comms",
+      url: "/dashboard/marketing",
       icon: IconSpeakerphone,
       items: [
         {
-          title: "hey comms",
-          url: "/dashboard/marketing/hey-comms",
+          title: "Overview",
+          url: "/dashboard/marketing",
         },
         {
           title: "get radical",
