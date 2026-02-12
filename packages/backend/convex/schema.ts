@@ -156,6 +156,7 @@ export default defineSchema({
       v.literal("published"),
       v.literal("archived"),
     ),
+    publishedAt: v.optional(v.number()),
     visibility: v.union(v.literal("public"), v.literal("private")),
     lifecycle: v.union(
       v.literal("upcoming"),
