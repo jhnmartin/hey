@@ -307,6 +307,73 @@ export const publish = mutation({
   },
 });
 
+export const remove = mutation({
+  args: { id: v.id("events") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_token", (q) =>
+        q.eq("tokenIdentifier", identity.tokenIdentifier),
+      )
+      .unique();
+    if (!profile) throw new Error("Profile not found");
+
+    const event = await ctx.db.get(args.id);
+    if (!event) throw new ConvexError("Event not found");
+
+    const membership = await ctx.db
+      .query("memberships")
+      .withIndex("by_profile_org", (q) =>
+        q.eq("profileId", profile._id).eq("orgId", event.ownerOrgId),
+      )
+      .unique();
+    if (!membership) throw new ConvexError("Not a member of this organization");
+
+    // Cascade delete related records
+    const ticketTypes = await ctx.db
+      .query("ticketTypes")
+      .withIndex("by_event", (q) => q.eq("eventId", args.id))
+      .collect();
+    for (const tt of ticketTypes) {
+      await ctx.db.delete(tt._id);
+    }
+
+    const collaborators = await ctx.db
+      .query("eventCollaborators")
+      .withIndex("by_event", (q) => q.eq("eventId", args.id))
+      .collect();
+    for (const c of collaborators) {
+      await ctx.db.delete(c._id);
+    }
+
+    const savedEvents = await ctx.db
+      .query("savedEvents")
+      .withIndex("by_event", (q) => q.eq("eventId", args.id))
+      .collect();
+    for (const s of savedEvents) {
+      await ctx.db.delete(s._id);
+    }
+
+    const rsvps = await ctx.db
+      .query("rsvps")
+      .withIndex("by_event", (q) => q.eq("eventId", args.id))
+      .collect();
+    for (const r of rsvps) {
+      await ctx.db.delete(r._id);
+    }
+
+    // Delete the cover image from storage if it exists
+    if (event.coverImageId) {
+      await ctx.storage.delete(event.coverImageId);
+    }
+
+    await ctx.db.delete(args.id);
+  },
+});
+
 export const archive = mutation({
   args: { id: v.id("events") },
   handler: async (ctx, args) => {

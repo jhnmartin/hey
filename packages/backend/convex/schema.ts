@@ -240,11 +240,13 @@ export default defineSchema({
     eventId: v.id("events"),
   })
     .index("by_profile", ["profileId"])
+    .index("by_event", ["eventId"])
     .index("by_profile_event", ["profileId", "eventId"]),
   rsvps: defineTable({
     profileId: v.id("profiles"),
     eventId: v.id("events"),
   })
     .index("by_profile", ["profileId"])
+    .index("by_event", ["eventId"])
     .index("by_profile_event", ["profileId", "eventId"]),
 });
