@@ -12,12 +12,6 @@ import {
   IconCalendarPlus,
 } from "@tabler/icons-react"
 import { EventSignupDialog } from "@/components/event-signup-dialog"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 
 type PendingAction = {
   type: "save" | "rsvp"
@@ -80,7 +74,7 @@ export default function BrowseEventsPage() {
       <h1 className="text-2xl font-bold">Browse Events</h1>
 
       {events === undefined ? (
-        <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
@@ -96,7 +90,7 @@ export default function BrowseEventsPage() {
           </p>
         </div>
       ) : (
-        <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
           {events.map((event) => {
             const isSaved = savedSet.has(event._id)
             const isRsvpd = rsvpSet.has(event._id)
@@ -106,77 +100,62 @@ export default function BrowseEventsPage() {
                 key={event._id}
                 className="bg-muted/50 hover:bg-muted/80 overflow-hidden rounded-xl transition-colors"
               >
-                <div className="relative">
-                  <Link href={`/events/${event._id}`}>
-                    {event.coverImageUrl ? (
-                      <img
-                        src={event.coverImageUrl}
-                        alt=""
-                        className="aspect-video w-full object-cover"
-                      />
-                    ) : (
-                      <div className="bg-muted aspect-video w-full" />
+                <Link href={`/events/${event._id}`}>
+                  {event.coverImageUrl ? (
+                    <img
+                      src={event.coverImageUrl}
+                      alt=""
+                      className="aspect-square w-full object-cover"
+                    />
+                  ) : (
+                    <div className="bg-muted aspect-square w-full" />
+                  )}
+                </Link>
+                <div className="p-3">
+                  <Link href={`/events/${event._id}`} className="block">
+                    <h3 className="text-sm font-semibold">{event.name}</h3>
+                    {event.venues && event.venues.length > 0 && (
+                      <p className="text-muted-foreground text-xs">
+                        {event.venues[0]!.name}
+                      </p>
                     )}
                   </Link>
-                  <div className="absolute top-2 right-2 flex gap-1">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            onClick={() => handleAction("save", event._id)}
-                            className="cursor-pointer rounded-full bg-black/50 p-1.5 text-white backdrop-blur-sm transition-colors hover:bg-black/70"
-                          >
-                            {isSaved ? (
-                              <IconBookmarkFilled className="size-4" />
-                            ) : (
-                              <IconBookmark className="size-4" />
-                            )}
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">Save event</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            onClick={() => handleAction("rsvp", event._id)}
-                            className="cursor-pointer rounded-full bg-black/50 p-1.5 text-white backdrop-blur-sm transition-colors hover:bg-black/70"
-                          >
-                            {isRsvpd ? (
-                              <IconCalendarCheck className="size-4" />
-                            ) : (
-                              <IconCalendarPlus className="size-4" />
-                            )}
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">Going</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                  <div className="mt-2 flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      {event.startDate
+                        ? new Date(event.startDate).toLocaleDateString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })
+                        : "\u00A0"}
+                    </span>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleAction("save", event._id)}
+                        className={`rounded-full p-1 transition-colors ${isSaved ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                      >
+                        {isSaved ? (
+                          <IconBookmarkFilled className="size-4" />
+                        ) : (
+                          <IconBookmark className="size-4" />
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAction("rsvp", event._id)}
+                        className={`rounded-full p-1 transition-colors ${isRsvpd ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                      >
+                        {isRsvpd ? (
+                          <IconCalendarCheck className="size-4" />
+                        ) : (
+                          <IconCalendarPlus className="size-4" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <Link href={`/events/${event._id}`} className="block p-4">
-                  <h3 className="font-semibold">{event.name}</h3>
-                  {event.venues && event.venues.length > 0 && (
-                    <p className="text-muted-foreground text-sm">
-                      {event.venues[0]!.name}
-                    </p>
-                  )}
-                  <div className="mt-3 flex items-center justify-between text-sm">
-                    {event.startDate && (
-                      <span className="text-muted-foreground">
-                        {new Date(event.startDate).toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </span>
-                    )}
-                    {event.isFreeEvent && (
-                      <span className="font-medium">Free</span>
-                    )}
-                  </div>
-                </Link>
               </div>
             )
           })}
