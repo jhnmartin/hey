@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { useSignIn, useSignUp } from "@clerk/nextjs"
 import { useMutation, useConvexAuth } from "convex/react"
 import { api } from "@repo/backend/convex/_generated/api"
@@ -52,6 +52,19 @@ export function EventSignupDialog({
   const isLoaded = signInLoaded && signUpLoaded
 
   const [pendingFinish, setPendingFinish] = useState(false)
+  const [resendCountdown, setResendCountdown] = useState(0)
+  const resendTimer = useRef<NodeJS.Timeout | null>(null)
+
+  useEffect(() => {
+    if (resendCountdown <= 0) {
+      if (resendTimer.current) clearInterval(resendTimer.current)
+      return
+    }
+    resendTimer.current = setInterval(() => {
+      setResendCountdown((c) => c - 1)
+    }, 1000)
+    return () => { if (resendTimer.current) clearInterval(resendTimer.current) }
+  }, [resendCountdown > 0])
 
   function reset() {
     setEmail("")
@@ -64,6 +77,7 @@ export function EventSignupDialog({
     setNeedsMfa(false)
     setMfaCode("")
     setPendingFinish(false)
+    setResendCountdown(0)
   }
 
   // Wait for Convex auth to propagate after setActive, then create profile + perform action
@@ -162,6 +176,7 @@ export function EventSignupDialog({
         await signUp.prepareEmailAddressVerification({
           strategy: "email_code",
         })
+        setResendCountdown(30)
         setVerifying(true)
       } catch (err: any) {
         setError(err.errors?.[0]?.longMessage ?? "Something went wrong")
@@ -270,7 +285,28 @@ export function EventSignupDialog({
             </p>
             {error && <p className="text-sm text-red-500">{error}</p>}
             <div>
-              <label className="text-sm font-medium">Verification Code</label>
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Verification Code</label>
+                {resendCountdown > 0 ? (
+                  <span className="text-destructive text-xs">{resendCountdown}s</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await signUp!.prepareEmailAddressVerification({ strategy: "email_code" })
+                        setResendCountdown(30)
+                        setError("")
+                      } catch (err: any) {
+                        setError(err.errors?.[0]?.longMessage ?? "Failed to resend code")
+                      }
+                    }}
+                    className="text-muted-foreground hover:text-foreground text-sm"
+                  >
+                    Resend code
+                  </button>
+                )}
+              </div>
               <input
                 type="text"
                 inputMode="numeric"
@@ -286,20 +322,6 @@ export function EventSignupDialog({
               className="bg-primary text-primary-foreground flex h-10 w-full cursor-pointer items-center justify-center rounded-md text-sm font-medium disabled:opacity-50"
             >
               {loading ? "Verifying..." : "Verify Email"}
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  await signUp!.prepareEmailAddressVerification({ strategy: "email_code" })
-                  setError("")
-                } catch (err: any) {
-                  setError(err.errors?.[0]?.longMessage ?? "Failed to resend code")
-                }
-              }}
-              className="text-muted-foreground hover:text-foreground w-full text-center text-sm"
-            >
-              Didn&apos;t get the code? Resend
             </button>
           </form>
         ) : (
