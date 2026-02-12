@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { useParams } from "next/navigation"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@repo/backend/convex/_generated/api"
+import { ConvexError } from "convex/values"
 import { format } from "date-fns"
 import { IconCalendar, IconCrop, IconGripVertical, IconLoader2, IconPhoto, IconReplace, IconTrash, IconX } from "@tabler/icons-react"
 import { EventImageCropDialog } from "@/components/event-image-crop-dialog"
@@ -326,7 +327,7 @@ export default function EventEditPage() {
       await publishEvent({ id: event._id })
       toast.success("Event published!")
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to publish"
+      const message = error instanceof ConvexError ? (error.data as string) : "Failed to publish"
       console.error("Failed to publish:", error)
       toast.error(message)
     } finally {
