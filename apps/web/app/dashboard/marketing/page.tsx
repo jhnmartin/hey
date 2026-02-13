@@ -142,15 +142,15 @@ export default function MarketingOverviewPage() {
                 </Collapsible>
 
                 <div className="bg-muted/50 rounded-xl">
-                  <Table>
+                  <Table className="table-fixed">
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Event Name</TableHead>
-                        <TableHead>
+                        <TableHead className="w-[50%]">Event Name</TableHead>
+                        <TableHead className="w-[20%]">
                           {phase === "planning" ? "Created" : "Start Date"}
                         </TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="w-10" />
+                        <TableHead className="w-[25%]">Status</TableHead>
+                        <TableHead className="w-[5%]" />
                       </TableRow>
                     </TableHeader>
                     <TableBody>

@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { SetPageTitle } from "@/components/page-title-context"
 
 export const metadata: Metadata = {
-  title: "Strats",
+  title: "Strategy",
 }
 
 const playbooks = [
@@ -44,10 +44,10 @@ const playbooks = [
   },
 ]
 
-export default function StratsPage() {
+export default function StrategyPage() {
   return (
     <>
-      <SetPageTitle title="Strats" />
+      <SetPageTitle title="Strategy" />
       <p className="text-muted-foreground text-sm">
         Ready-made advertising playbooks for common event types. Pick a
         strategy, customize it, and launch.

@@ -60,12 +60,16 @@ const data = {
           url: "/dashboard/marketing",
         },
         {
-          title: "get radical",
+          title: "Social Media",
+          url: "/dashboard/marketing/organic",
+        },
+        {
+          title: "Paid Ads",
           url: "/dashboard/marketing/get-radical",
         },
         {
-          title: "Strats",
-          url: "/dashboard/marketing/strats",
+          title: "Strategy",
+          url: "/dashboard/marketing/strategy",
         },
       ],
     },
