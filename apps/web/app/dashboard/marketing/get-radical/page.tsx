@@ -95,7 +95,7 @@ export default function GetRadicalPage() {
               {events.map((event) => {
                 const phase = computeMarketingPhase(event)
                 return (
-                  <TableRow key={event._id} className="bg-white border-border">
+                  <TableRow key={event._id} className="bg-card border-border">
                     <TableCell className="font-medium">
                       <Link
                         href={`/dashboard/marketing/get-radical/${event._id}`}
