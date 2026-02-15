@@ -27,6 +27,17 @@ export const toggle = mutation({
       return { saved: false };
     }
 
+    // Remove any existing RSVP (save and RSVP are mutually exclusive)
+    const existingRsvp = await ctx.db
+      .query("rsvps")
+      .withIndex("by_profile_event", (q) =>
+        q.eq("profileId", profile._id).eq("eventId", args.eventId),
+      )
+      .unique();
+    if (existingRsvp) {
+      await ctx.db.delete(existingRsvp._id);
+    }
+
     await ctx.db.insert("savedEvents", {
       profileId: profile._id,
       eventId: args.eventId,

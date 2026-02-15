@@ -6,7 +6,7 @@ import { useQuery, useMutation } from "convex/react"
 import { api } from "@repo/backend/convex/_generated/api"
 import { ConvexError } from "convex/values"
 import { format } from "date-fns"
-import { IconCalendar, IconCrop, IconGripVertical, IconLoader2, IconPhoto, IconReplace, IconTrash, IconTrashX, IconX } from "@tabler/icons-react"
+import { IconCalendar, IconCrop, IconCurrencyDollar, IconGripVertical, IconLoader2, IconPhoto, IconPlus, IconReplace, IconTrash, IconTrashX, IconX } from "@tabler/icons-react"
 import { EventImageCropDialog } from "@/components/event-image-crop-dialog"
 import {
   DndContext,
@@ -149,6 +149,10 @@ export default function EventEditPage() {
   const deleteEvent = useMutation(api.events.remove)
   const retryEnrichment = useMutation(api.events.retryEnrichment)
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl)
+  const ticketTypes = useQuery(api.ticketTypes.listByEvent, id ? { eventId: id as any } : "skip")
+  const createTicketType = useMutation(api.ticketTypes.create)
+  const updateTicketType = useMutation(api.ticketTypes.update)
+  const removeTicketType = useMutation(api.ticketTypes.remove)
 
   // Editable fields
   const [name, setName] = useState("")
@@ -170,6 +174,8 @@ export default function EventEditPage() {
   const [doorsTime, setDoorsTime] = useState("")
   const [showDoors, setShowDoors] = useState(false)
   const [timezone, setTimezone] = useState("")
+  const [ticketingMode, setTicketingMode] = useState("none")
+  const [externalTicketUrl, setExternalTicketUrl] = useState("")
 
   // Cover image state
   const [coverImageId, setCoverImageId] = useState<string | null>(null)
@@ -228,6 +234,8 @@ export default function EventEditPage() {
       setTimezone(event.timezone ?? getBrowserTimezone())
       setCoverImageId(event.coverImageId ?? null)
       setCoverPreviewUrl(event.coverImageUrl ?? null)
+      setTicketingMode(event.ticketingMode ?? "none")
+      setExternalTicketUrl(event.externalTicketUrl ?? "")
       setInitialized(true)
     } else {
       // Reactively fill AI-generated fields the user hasn't touched
@@ -318,6 +326,8 @@ export default function EventEditPage() {
         zip: v.zip || undefined,
         primary: v.primary || undefined,
       })) : undefined,
+      ticketingMode: (ticketingMode as "platform" | "external" | "none") || undefined,
+      externalTicketUrl: ticketingMode === "external" ? externalTicketUrl.trim() || undefined : undefined,
     })
   }
 
@@ -794,6 +804,94 @@ export default function EventEditPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+          </div>
+
+          {/* Ticketing */}
+          <div className="bg-muted/50 rounded-xl p-6">
+            <h3 className="mb-4 font-semibold">Ticketing</h3>
+            <div className="space-y-4">
+              <div>
+                <Label className="mb-2 block text-sm font-medium">Ticketing Mode</Label>
+                <Select value={ticketingMode} onValueChange={setTicketingMode}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Ticketing</SelectItem>
+                    <SelectItem value="platform">Platform Tickets</SelectItem>
+                    <SelectItem value="external">External Link</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {ticketingMode === "platform" && (
+                <div className="space-y-3">
+                  <Label className="block text-sm font-medium">Ticket Types</Label>
+                  {ticketTypes?.sort((a, b) => a.sortOrder - b.sortOrder).map((tt) => (
+                    <div key={tt._id} className="bg-background flex items-center gap-3 rounded-md border px-3 py-2">
+                      <IconCurrencyDollar className="text-muted-foreground size-4 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{tt.name}</p>
+                        <p className="text-muted-foreground text-xs">
+                          ${(tt.price / 100).toFixed(2)} · {tt.sold}/{tt.quantity} sold
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await removeTicketType({ id: tt._id })
+                          toast.success("Ticket type removed")
+                        }}
+                        className="text-muted-foreground hover:text-foreground shrink-0"
+                      >
+                        <IconX className="size-4" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!event) return
+                      const name = prompt("Ticket type name:")
+                      if (!name) return
+                      const priceStr = prompt("Price in dollars (e.g. 25.00):")
+                      if (!priceStr) return
+                      const price = Math.round(parseFloat(priceStr) * 100)
+                      if (isNaN(price) || price < 0) return
+                      const qtyStr = prompt("Quantity available:")
+                      if (!qtyStr) return
+                      const quantity = parseInt(qtyStr)
+                      if (isNaN(quantity) || quantity < 1) return
+                      await createTicketType({
+                        eventId: event._id,
+                        name,
+                        price,
+                        quantity,
+                        sortOrder: (ticketTypes?.length ?? 0) + 1,
+                        status: "active",
+                      })
+                      toast.success("Ticket type added")
+                    }}
+                    className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm underline"
+                  >
+                    <IconPlus className="size-3" />
+                    Add Ticket Type
+                  </button>
+                </div>
+              )}
+              {ticketingMode === "external" && (
+                <div>
+                  <Label htmlFor="externalTicketUrl" className="mb-2 block text-sm font-medium">
+                    External Ticket URL
+                  </Label>
+                  <Input
+                    id="externalTicketUrl"
+                    placeholder="https://eventbrite.com/..."
+                    value={externalTicketUrl}
+                    onChange={(e) => setExternalTicketUrl(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
           </div>
 

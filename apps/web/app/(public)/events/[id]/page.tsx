@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useSearchParams } from "next/navigation"
 import { useAuth } from "@clerk/nextjs"
-import { useQuery, useMutation } from "convex/react"
+import { useQuery, useMutation, useAction } from "convex/react"
 import { api } from "@repo/backend/convex/_generated/api"
 import { format } from "date-fns"
 import {
@@ -11,6 +11,10 @@ import {
   IconBookmarkFilled,
   IconCalendarCheck,
   IconCalendarPlus,
+  IconCheck,
+  IconExternalLink,
+  IconMinus,
+  IconPlus,
   IconTicket,
 } from "@tabler/icons-react"
 import { EventSignupDialog } from "@/components/event-signup-dialog"
@@ -22,6 +26,7 @@ type PendingAction = {
 
 export default function PublicEventDetailPage() {
   const params = useParams<{ id: string }>()
+  const searchParams = useSearchParams()
   const { isSignedIn } = useAuth()
 
   const event = useQuery(api.events.get, { id: params.id as any })
@@ -33,11 +38,22 @@ export default function PublicEventDetailPage() {
     api.rsvps.listByProfile,
     isSignedIn ? {} : "skip",
   )
+  const ticketTypes = useQuery(api.ticketTypes.listByEvent, params.id ? { eventId: params.id as any } : "skip")
   const toggleSave = useMutation(api.savedEvents.toggle)
   const toggleRsvp = useMutation(api.rsvps.toggle)
+  const createCheckout = useAction(api.stripeCheckout.createCheckoutSession)
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
+  const [quantities, setQuantities] = useState<Record<string, number>>({})
+  const [checkingOut, setCheckingOut] = useState(false)
+
+  const checkoutSuccess = searchParams.get("checkout") === "success"
+  const sessionId = searchParams.get("session_id")
+  const checkoutOrder = useQuery(
+    api.orders.getBySessionId,
+    checkoutSuccess && sessionId ? { stripeSessionId: sessionId } : "skip",
+  )
 
   // Handle pending action from social OAuth redirect
   useEffect(() => {
@@ -121,6 +137,18 @@ export default function PublicEventDetailPage() {
             <div className="bg-muted aspect-square w-full rounded-xl" />
           )}
 
+          {/* Checkout success banner */}
+          {checkoutSuccess && (
+            <div className="bg-green-600/10 mt-4 flex items-center gap-2 rounded-lg p-4">
+              <IconCheck className="size-5 text-green-500" />
+              <p className="text-sm font-medium text-green-500">
+                {checkoutOrder?.status === "completed"
+                  ? "Tickets confirmed! Check your Passport."
+                  : "Payment received — confirming your tickets..."}
+              </p>
+            </div>
+          )}
+
           {/* Save / RSVP buttons */}
           <div className="mt-4 flex gap-4">
             <button
@@ -138,7 +166,7 @@ export default function PublicEventDetailPage() {
             <button
               type="button"
               onClick={() => handleAction("rsvp")}
-              className={`inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-md px-6 py-3 text-sm font-medium ${event.isFreeEvent ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted hover:bg-muted/80"}`}
+              className={`inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-md px-6 py-3 text-sm font-medium ${event.isFreeEvent || event.ticketingMode === "none" ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted hover:bg-muted/80"}`}
             >
               {isRsvpd ? (
                 <IconCalendarCheck className="size-4" />
@@ -148,14 +176,105 @@ export default function PublicEventDetailPage() {
               {isRsvpd ? "Going" : "RSVP"}
             </button>
           </div>
-          {!event.isFreeEvent && (
-            <button
-              type="button"
-              className="bg-primary text-primary-foreground hover:bg-primary/90 mt-4 inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-md px-6 py-3 text-xl font-medium uppercase"
+
+          {/* Ticketing */}
+          {event.ticketingMode === "platform" && ticketTypes && ticketTypes.filter(tt => tt.status === "active").length > 0 && (
+            <div className="mt-4 space-y-3">
+              {ticketTypes
+                .filter(tt => tt.status === "active")
+                .sort((a, b) => a.sortOrder - b.sortOrder)
+                .map((tt) => {
+                  const available = tt.quantity - tt.sold
+                  const qty = quantities[tt._id] ?? 0
+                  return (
+                    <div key={tt._id} className="bg-muted/50 flex items-center justify-between rounded-lg p-4">
+                      <div>
+                        <p className="font-medium">{tt.name}</p>
+                        <p className="text-muted-foreground text-sm">
+                          ${(tt.price / 100).toFixed(2)}
+                          {available <= 10 && available > 0 && (
+                            <span className="ml-2 text-orange-500">{available} left</span>
+                          )}
+                          {available === 0 && (
+                            <span className="ml-2 text-red-500">Sold out</span>
+                          )}
+                        </p>
+                      </div>
+                      {available > 0 && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setQuantities(prev => ({ ...prev, [tt._id]: Math.max(0, qty - 1) }))}
+                            disabled={qty === 0}
+                            className="bg-background hover:bg-background/80 inline-flex size-8 items-center justify-center rounded-md border disabled:opacity-50"
+                          >
+                            <IconMinus className="size-3" />
+                          </button>
+                          <span className="w-6 text-center text-sm font-medium">{qty}</span>
+                          <button
+                            type="button"
+                            onClick={() => setQuantities(prev => ({ ...prev, [tt._id]: Math.min(available, qty + 1) }))}
+                            disabled={qty >= available}
+                            className="bg-background hover:bg-background/80 inline-flex size-8 items-center justify-center rounded-md border disabled:opacity-50"
+                          >
+                            <IconPlus className="size-3" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              {Object.values(quantities).some(q => q > 0) && (
+                <button
+                  type="button"
+                  disabled={checkingOut}
+                  onClick={async () => {
+                    if (!isSignedIn) {
+                      setPendingAction({ type: "save", eventId: event._id })
+                      setDialogOpen(true)
+                      return
+                    }
+                    setCheckingOut(true)
+                    try {
+                      const items = Object.entries(quantities)
+                        .filter(([, q]) => q > 0)
+                        .map(([ticketTypeId, quantity]) => ({
+                          ticketTypeId: ticketTypeId as any,
+                          quantity,
+                        }))
+                      const result = await createCheckout({
+                        eventId: event._id as any,
+                        items,
+                        successUrl: window.location.href.split("?")[0]!,
+                        cancelUrl: window.location.href.split("?")[0]!,
+                      })
+                      if (result.url) {
+                        window.location.href = result.url
+                      }
+                    } catch (error) {
+                      console.error("Checkout failed:", error)
+                      setCheckingOut(false)
+                    }
+                  }}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-md px-6 py-3 text-xl font-medium uppercase disabled:opacity-50"
+                >
+                  <IconTicket className="size-5" />
+                  {checkingOut ? "Redirecting..." : "Buy Tickets"}
+                </button>
+              )}
+            </div>
+          )}
+
+          {event.ticketingMode === "external" && event.externalTicketUrl && (
+            <a
+              href={event.externalTicketUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md px-6 py-3 text-xl font-medium uppercase"
             >
-              <IconTicket className="size-4" />
+              <IconExternalLink className="size-5" />
               Get Tickets
-            </button>
+            </a>
           )}
         </div>
 
