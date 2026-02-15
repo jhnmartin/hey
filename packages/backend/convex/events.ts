@@ -20,6 +20,7 @@ export const create = mutation({
       primary: v.optional(v.boolean()),
     }))),
     coverImageId: v.optional(v.id("_storage")),
+    coverImageOriginalId: v.optional(v.id("_storage")),
     status: v.union(
       v.literal("draft"),
       v.literal("published"),
@@ -89,7 +90,12 @@ export const get = query({
       coverImageUrl = await ctx.storage.getUrl(event.coverImageId);
     }
 
-    return { ...event, coverImageUrl };
+    let coverImageOriginalUrl: string | null = null;
+    if (event.coverImageOriginalId) {
+      coverImageOriginalUrl = await ctx.storage.getUrl(event.coverImageOriginalId);
+    }
+
+    return { ...event, coverImageUrl, coverImageOriginalUrl };
   },
 });
 
@@ -176,6 +182,7 @@ export const update = mutation({
       primary: v.optional(v.boolean()),
     }))),
     coverImageId: v.optional(v.id("_storage")),
+    coverImageOriginalId: v.optional(v.id("_storage")),
     status: v.optional(
       v.union(
         v.literal("draft"),
@@ -371,9 +378,12 @@ export const remove = mutation({
       await ctx.db.delete(r._id);
     }
 
-    // Delete the cover image from storage if it exists
+    // Delete cover images from storage if they exist
     if (event.coverImageId) {
       await ctx.storage.delete(event.coverImageId);
+    }
+    if (event.coverImageOriginalId) {
+      await ctx.storage.delete(event.coverImageOriginalId);
     }
 
     await ctx.db.delete(args.id);

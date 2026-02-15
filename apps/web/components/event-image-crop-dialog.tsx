@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useRef, useLayoutEffect, useEffect } from "react"
 import Cropper from "react-easy-crop"
 import type { Area } from "react-easy-crop"
 import { getCroppedImage } from "@/lib/crop-image"
@@ -22,6 +22,11 @@ type EventImageCropDialogProps = {
   onConfirm: (blob: Blob) => void
 }
 
+const MIN_ZOOM = 0.5
+const MAX_ZOOM = 3
+const DEFAULT_ZOOM = 1
+const CROP_RATIO = 0.9
+
 export function EventImageCropDialog({
   open,
   onOpenChange,
@@ -29,9 +34,31 @@ export function EventImageCropDialog({
   onConfirm,
 }: EventImageCropDialogProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 })
-  const [zoom, setZoom] = useState(1)
+  const [zoom, setZoom] = useState(DEFAULT_ZOOM)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
   const [processing, setProcessing] = useState(false)
+  const [cropSize, setCropSize] = useState<{ width: number; height: number } | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Measure container synchronously before paint — avoids the flash/black screen
+  // that useEffect + ResizeObserver caused (fired too late, Cropper initialized wrong)
+  useLayoutEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const w = el.clientWidth
+    if (w > 0) {
+      const size = Math.round(w * CROP_RATIO)
+      setCropSize(prev =>
+        prev && prev.width === size ? prev : { width: size, height: size }
+      )
+    }
+  })
+
+  // Reset crop/zoom when image changes
+  useEffect(() => {
+    setCrop({ x: 0, y: 0 })
+    setZoom(DEFAULT_ZOOM)
+  }, [imageSrc])
 
   const onCropComplete = useCallback((_croppedArea: Area, croppedPixels: Area) => {
     setCroppedAreaPixels(croppedPixels)
@@ -59,30 +86,31 @@ export function EventImageCropDialog({
           <DialogDescription>Recommended: 1080 × 1080</DialogDescription>
         </DialogHeader>
 
-        {/* Cropper area */}
-        <div className="relative aspect-square w-full overflow-hidden rounded-lg">
-          <Cropper
-            image={imageSrc}
-            crop={crop}
-            zoom={zoom}
-            minZoom={0.5}
-            maxZoom={3}
-            aspect={1}
-            restrictPosition={false}
-            onCropChange={setCrop}
-            onZoomChange={setZoom}
-            onCropComplete={onCropComplete}
-          />
+        <div ref={containerRef} className="relative aspect-square w-full overflow-hidden rounded-lg">
+          {cropSize && (
+            <Cropper
+              image={imageSrc}
+              crop={crop}
+              zoom={zoom}
+              minZoom={MIN_ZOOM}
+              maxZoom={MAX_ZOOM}
+              cropSize={cropSize}
+              objectFit="horizontal-cover"
+              restrictPosition={false}
+              onCropChange={setCrop}
+              onZoomChange={setZoom}
+              onCropComplete={onCropComplete}
+            />
+          )}
         </div>
 
-        {/* Zoom slider */}
         <div className="flex items-center gap-3">
           <span className="text-muted-foreground text-xs">Zoom</span>
           <Slider
             value={[zoom]}
             onValueChange={(v) => setZoom(v[0]!)}
-            min={0.5}
-            max={3}
+            min={MIN_ZOOM}
+            max={MAX_ZOOM}
             step={0.1}
             className="flex-1"
           />
