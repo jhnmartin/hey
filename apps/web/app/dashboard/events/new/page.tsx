@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { format } from "date-fns"
 import { useMutation } from "convex/react"
 import { useRouter } from "next/navigation"
@@ -16,7 +16,15 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { US_TIMEZONES, getBrowserTimezone } from "@/lib/timezones"
 
 function combineDateAndTime(date: Date, time: string): number {
   const d = new Date(date)
@@ -33,17 +41,31 @@ export default function CreateEventPage() {
   const [startDate, setStartDate] = useState<Date | undefined>()
   const [startTime, setStartTime] = useState("")
   const [venue, setVenue] = useState<VenueResult | null>(null)
-  const [showEndDate, setShowEndDate] = useState(false)
   const [endDate, setEndDate] = useState<Date | undefined>()
   const [endTime, setEndTime] = useState("")
   const [recurring, setRecurring] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [timezone, setTimezone] = useState(getBrowserTimezone)
+
+  // Track whether the user has manually changed end date/time
+  const endTouched = useRef(false)
 
   const { activeOrg } = useOrg()
   const createEvent = useMutation(api.events.create)
   const router = useRouter()
 
   const canSave = name.trim() !== "" && activeOrg !== null
+
+  const handleStartDateSelect = (date: Date | undefined) => {
+    setStartDate(date)
+    if (date && !endTouched.current) {
+      const nextDay = new Date(date)
+      nextDay.setDate(nextDay.getDate() + 1)
+      nextDay.setHours(2, 0, 0, 0)
+      setEndDate(nextDay)
+      setEndTime("02:00")
+    }
+  }
 
   const handleSave = async () => {
     if (!canSave || !activeOrg) return
@@ -57,8 +79,9 @@ export default function CreateEventPage() {
         ageRestriction: "all_ages",
         eventType: recurring ? "recurring" : "single",
         ownerOrgId: activeOrg._id,
+        timezone,
         ...(startDate && { startDate: combineDateAndTime(startDate, startTime) }),
-        ...(showEndDate && endDate && { endDate: combineDateAndTime(endDate, endTime) }),
+        ...(endDate && { endDate: combineDateAndTime(endDate, endTime) }),
         ...(venue && {
           venues: [{
             name: venue.venueName,
@@ -119,7 +142,7 @@ export default function CreateEventPage() {
                   <Calendar
                     mode="single"
                     selected={startDate}
-                    onSelect={setStartDate}
+                    onSelect={handleStartDateSelect}
                   />
                 </PopoverContent>
               </Popover>
@@ -134,74 +157,67 @@ export default function CreateEventPage() {
               />
             </div>
           </div>
-          {showEndDate && (
-            <div className="mt-4 flex items-end gap-4">
-              <div className="flex-1">
-                <Label className="mb-2 block text-sm font-medium">End Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !endDate && "text-muted-foreground",
-                      )}
-                    >
-                      <IconCalendar className="mr-2 size-4" />
-                      {endDate ? format(endDate, "PPP") : "Pick a date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={endDate}
-                      onSelect={setEndDate}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="w-36">
-                <Label htmlFor="end-time" className="mb-2 block text-sm font-medium">Time</Label>
-                <Input
-                  id="end-time"
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                />
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => { setShowEndDate(false); setEndDate(undefined); setEndTime("") }}
-              >
-                <IconX className="size-4" />
-              </Button>
+          <div className="mt-4 flex gap-4">
+            <div className="flex-1">
+              <Label className="mb-2 block text-sm font-medium">End Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !endDate && "text-muted-foreground",
+                    )}
+                  >
+                    <IconCalendar className="mr-2 size-4" />
+                    {endDate ? format(endDate, "PPP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={endDate}
+                    onSelect={(d) => { endTouched.current = true; setEndDate(d) }}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
-          )}
-          <div className="mt-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="recurring-toggle" className="text-muted-foreground text-xs">
-                {recurring && startDate
-                  ? `Repeats every ${format(startDate, "EEEE")} (weekly)`
-                  : "Recurring (weekly)"}
-              </Label>
-              <Switch
-                id="recurring-toggle"
-                checked={recurring}
-                onCheckedChange={setRecurring}
+            <div className="w-36">
+              <Label htmlFor="end-time" className="mb-2 block text-sm font-medium">Time</Label>
+              <Input
+                id="end-time"
+                type="time"
+                value={endTime}
+                onChange={(e) => { endTouched.current = true; setEndTime(e.target.value) }}
               />
             </div>
-            {!showEndDate && (
-              <Button
-                type="button"
-                variant="link"
-                className="h-auto p-0 text-xs"
-                onClick={() => setShowEndDate(true)}
-              >
-                + Add end date and time
-              </Button>
-            )}
+          </div>
+          <div className="mt-4">
+            <Label className="mb-2 block text-sm font-medium">Timezone</Label>
+            <Select value={timezone} onValueChange={setTimezone}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {US_TIMEZONES.map((tz) => (
+                  <SelectItem key={tz.value} value={tz.value}>
+                    {tz.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="mt-3 flex items-center gap-2">
+            <Label htmlFor="recurring-toggle" className="text-muted-foreground text-xs">
+              {recurring && startDate
+                ? `Repeats every ${format(startDate, "EEEE")} (weekly)`
+                : "Recurring (weekly)"}
+            </Label>
+            <Switch
+              id="recurring-toggle"
+              checked={recurring}
+              onCheckedChange={setRecurring}
+            />
           </div>
         </div>
         <div className="bg-muted/50 rounded-xl p-6">

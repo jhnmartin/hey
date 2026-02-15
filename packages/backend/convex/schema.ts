@@ -142,6 +142,7 @@ export default defineSchema({
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
     doorsOpen: v.optional(v.number()),
+    timezone: v.optional(v.string()),
     venues: v.optional(v.array(v.object({
       name: v.string(),
       address: v.optional(v.string()),
@@ -182,6 +183,8 @@ export default defineSchema({
     seriesId: v.optional(v.id("eventSeries")),
     seriesOrder: v.optional(v.number()),
     isFreeEvent: v.optional(v.boolean()),
+    ticketingMode: v.optional(v.union(v.literal("platform"), v.literal("external"), v.literal("none"))),
+    externalTicketUrl: v.optional(v.string()),
     seoTitle: v.optional(v.string()),
     seoDescription: v.optional(v.string()),
     richDescription: v.optional(v.string()),
@@ -250,4 +253,48 @@ export default defineSchema({
     .index("by_profile", ["profileId"])
     .index("by_event", ["eventId"])
     .index("by_profile_event", ["profileId", "eventId"]),
+  orders: defineTable({
+    profileId: v.id("profiles"),
+    eventId: v.id("events"),
+    stripeSessionId: v.string(),
+    stripePaymentIntentId: v.optional(v.string()),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("completed"),
+      v.literal("refunded"),
+      v.literal("failed"),
+    ),
+    totalAmount: v.number(),
+    platformFee: v.number(),
+    stripeFee: v.optional(v.number()),
+    currency: v.string(),
+    items: v.array(v.object({
+      ticketTypeId: v.id("ticketTypes"),
+      ticketTypeName: v.string(),
+      quantity: v.number(),
+      unitPrice: v.number(),
+    })),
+  })
+    .index("by_profile", ["profileId"])
+    .index("by_event", ["eventId"])
+    .index("by_stripe_session", ["stripeSessionId"])
+    .index("by_status", ["status"]),
+  tickets: defineTable({
+    orderId: v.id("orders"),
+    profileId: v.id("profiles"),
+    eventId: v.id("events"),
+    ticketTypeId: v.id("ticketTypes"),
+    ticketTypeName: v.string(),
+    status: v.union(
+      v.literal("valid"),
+      v.literal("used"),
+      v.literal("cancelled"),
+      v.literal("refunded"),
+    ),
+    code: v.string(),
+  })
+    .index("by_profile", ["profileId"])
+    .index("by_event", ["eventId"])
+    .index("by_order", ["orderId"])
+    .index("by_code", ["code"]),
 });

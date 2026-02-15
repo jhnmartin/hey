@@ -14,17 +14,23 @@ import type * as eventCollaborators from "../eventCollaborators.js";
 import type * as eventSeries from "../eventSeries.js";
 import type * as eventTags from "../eventTags.js";
 import type * as events from "../events.js";
+import type * as http from "../http.js";
 import type * as inviteEmails from "../inviteEmails.js";
 import type * as invites from "../invites.js";
 import type * as memberships from "../memberships.js";
+import type * as orders from "../orders.js";
+import type * as ordersHelpers from "../ordersHelpers.js";
 import type * as organizations from "../organizations.js";
 import type * as places from "../places.js";
 import type * as profiles from "../profiles.js";
 import type * as rsvps from "../rsvps.js";
 import type * as savedEvents from "../savedEvents.js";
 import type * as storage from "../storage.js";
+import type * as stripeCheckout from "../stripeCheckout.js";
+import type * as stripeWebhook from "../stripeWebhook.js";
 import type * as tasks from "../tasks.js";
 import type * as ticketTypes from "../ticketTypes.js";
+import type * as tickets from "../tickets.js";
 
 import type {
   ApiFromModules,
@@ -39,17 +45,23 @@ declare const fullApi: ApiFromModules<{
   eventSeries: typeof eventSeries;
   eventTags: typeof eventTags;
   events: typeof events;
+  http: typeof http;
   inviteEmails: typeof inviteEmails;
   invites: typeof invites;
   memberships: typeof memberships;
+  orders: typeof orders;
+  ordersHelpers: typeof ordersHelpers;
   organizations: typeof organizations;
   places: typeof places;
   profiles: typeof profiles;
   rsvps: typeof rsvps;
   savedEvents: typeof savedEvents;
   storage: typeof storage;
+  stripeCheckout: typeof stripeCheckout;
+  stripeWebhook: typeof stripeWebhook;
   tasks: typeof tasks;
   ticketTypes: typeof ticketTypes;
+  tickets: typeof tickets;
 }>;
 
 /**

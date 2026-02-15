@@ -10,6 +10,7 @@ export const create = mutation({
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
     doorsOpen: v.optional(v.number()),
+    timezone: v.optional(v.string()),
     venues: v.optional(v.array(v.object({
       name: v.string(),
       address: v.optional(v.string()),
@@ -39,6 +40,8 @@ export const create = mutation({
     seriesId: v.optional(v.id("eventSeries")),
     seriesOrder: v.optional(v.number()),
     isFreeEvent: v.optional(v.boolean()),
+    ticketingMode: v.optional(v.union(v.literal("platform"), v.literal("external"), v.literal("none"))),
+    externalTicketUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -163,6 +166,7 @@ export const update = mutation({
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
     doorsOpen: v.optional(v.number()),
+    timezone: v.optional(v.string()),
     venues: v.optional(v.array(v.object({
       name: v.string(),
       address: v.optional(v.string()),
@@ -194,6 +198,8 @@ export const update = mutation({
       v.literal("recurring"),
     )),
     isFreeEvent: v.optional(v.boolean()),
+    ticketingMode: v.optional(v.union(v.literal("platform"), v.literal("external"), v.literal("none"))),
+    externalTicketUrl: v.optional(v.string()),
     seoTitle: v.optional(v.string()),
     seoDescription: v.optional(v.string()),
     richDescription: v.optional(v.string()),
