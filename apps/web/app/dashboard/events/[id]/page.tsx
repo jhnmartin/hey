@@ -6,7 +6,7 @@ import { useQuery, useMutation } from "convex/react"
 import { api } from "@repo/backend/convex/_generated/api"
 import { ConvexError } from "convex/values"
 import { format } from "date-fns"
-import { IconCalendar, IconCrop, IconCurrencyDollar, IconGripVertical, IconLoader2, IconPhoto, IconPlus, IconReplace, IconTrash, IconTrashX, IconX } from "@tabler/icons-react"
+import { IconCalendar, IconCrop, IconCurrencyDollar, IconGripVertical, IconLoader2, IconPencil, IconPhoto, IconPlus, IconTrash, IconTrashX, IconX } from "@tabler/icons-react"
 import { EventImageCropDialog } from "@/components/event-image-crop-dialog"
 import {
   DndContext,
@@ -179,10 +179,12 @@ export default function EventEditPage() {
 
   // Cover image state
   const [coverImageId, setCoverImageId] = useState<string | null>(null)
+  const [coverImageOriginalId, setCoverImageOriginalId] = useState<string | null>(null)
   const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null)
   const [cropDialogOpen, setCropDialogOpen] = useState(false)
   const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null)
   const [originalImageSrc, setOriginalImageSrc] = useState<string | null>(null)
+  const originalFileRef = useRef<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const coverInputRef = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver] = useState(false)
@@ -233,7 +235,11 @@ export default function EventEditPage() {
       setShowDoors(!!event.doorsOpen)
       setTimezone(event.timezone ?? getBrowserTimezone())
       setCoverImageId(event.coverImageId ?? null)
+      setCoverImageOriginalId(event.coverImageOriginalId ?? null)
       setCoverPreviewUrl(event.coverImageUrl ?? null)
+      if (event.coverImageOriginalUrl) {
+        setOriginalImageSrc(event.coverImageOriginalUrl)
+      }
       setTicketingMode(event.ticketingMode ?? "none")
       setExternalTicketUrl(event.externalTicketUrl ?? "")
       setInitialized(true)
@@ -258,8 +264,10 @@ export default function EventEditPage() {
     // Revoke previous original if replacing
     if (originalImageSrc) URL.revokeObjectURL(originalImageSrc)
     const url = URL.createObjectURL(file)
+    originalFileRef.current = file
     setOriginalImageSrc(url)
     setSelectedImageSrc(url)
+    setCoverImageOriginalId(null)
     setCropDialogOpen(true)
   }, [originalImageSrc])
 
@@ -267,6 +275,20 @@ export default function EventEditPage() {
     async (blob: Blob) => {
       setUploading(true)
       try {
+        // Upload original file if this is a new selection (not a re-crop)
+        if (originalFileRef.current) {
+          const origUrl = await generateUploadUrl()
+          const origResult = await fetch(origUrl, {
+            method: "POST",
+            headers: { "Content-Type": originalFileRef.current.type },
+            body: originalFileRef.current,
+          })
+          const { storageId: origId } = await origResult.json()
+          setCoverImageOriginalId(origId)
+          originalFileRef.current = null
+        }
+
+        // Upload cropped image
         const url = await generateUploadUrl()
         const result = await fetch(url, {
           method: "POST",
@@ -287,13 +309,16 @@ export default function EventEditPage() {
 
   const handleEditCrop = useCallback(() => {
     if (!originalImageSrc) return
+    originalFileRef.current = null
     setSelectedImageSrc(originalImageSrc)
     setCropDialogOpen(true)
   }, [originalImageSrc])
 
   const handleRemoveCover = useCallback(() => {
     if (originalImageSrc) URL.revokeObjectURL(originalImageSrc)
+    originalFileRef.current = null
     setCoverImageId(null)
+    setCoverImageOriginalId(null)
     setCoverPreviewUrl(null)
     setOriginalImageSrc(null)
   }, [originalImageSrc])
@@ -305,6 +330,7 @@ export default function EventEditPage() {
       name: name.trim() || undefined,
       tagline: tagline.trim() || undefined,
       ...(coverImageId ? { coverImageId: coverImageId as any } : {}),
+      ...(coverImageOriginalId ? { coverImageOriginalId: coverImageOriginalId as any } : {}),
       seoTitle: seoTitle.trim() || undefined,
       seoDescription: seoDescription.trim() || undefined,
       richDescription: richDescription.trim() || undefined,
@@ -475,7 +501,15 @@ export default function EventEditPage() {
                 alt=""
                 className="size-full rounded-xl object-contain"
               />
-              <div className="absolute top-2 right-2 flex gap-1">
+              <div className="absolute top-2 left-2 flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => coverInputRef.current?.click()}
+                  className="bg-background/80 hover:bg-background rounded-full p-1.5"
+                  title="Replace image"
+                >
+                  <IconPencil className="size-4" />
+                </button>
                 {originalImageSrc && (
                   <button
                     type="button"
@@ -486,14 +520,6 @@ export default function EventEditPage() {
                     <IconCrop className="size-4" />
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={() => coverInputRef.current?.click()}
-                  className="bg-background/80 hover:bg-background rounded-full p-1.5"
-                  title="Replace image"
-                >
-                  <IconReplace className="size-4" />
-                </button>
                 <button
                   type="button"
                   onClick={handleRemoveCover}

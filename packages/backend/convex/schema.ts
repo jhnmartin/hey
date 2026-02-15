@@ -152,6 +152,7 @@ export default defineSchema({
       primary: v.optional(v.boolean()),
     }))),
     coverImageId: v.optional(v.id("_storage")),
+    coverImageOriginalId: v.optional(v.id("_storage")),
     status: v.union(
       v.literal("draft"),
       v.literal("published"),
