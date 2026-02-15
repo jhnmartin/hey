@@ -50,6 +50,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import { US_TIMEZONES, getBrowserTimezone } from "@/lib/timezones"
 import { toast } from "sonner"
 
 function tsToDate(ts?: number): Date | undefined {
@@ -168,6 +169,7 @@ export default function EventEditPage() {
   const [endTime, setEndTime] = useState("")
   const [doorsTime, setDoorsTime] = useState("")
   const [showDoors, setShowDoors] = useState(false)
+  const [timezone, setTimezone] = useState("")
 
   // Cover image state
   const [coverImageId, setCoverImageId] = useState<string | null>(null)
@@ -223,6 +225,7 @@ export default function EventEditPage() {
       }
       setDoorsTime(tsToTime(event.doorsOpen))
       setShowDoors(!!event.doorsOpen)
+      setTimezone(event.timezone ?? getBrowserTimezone())
       setCoverImageId(event.coverImageId ?? null)
       setCoverPreviewUrl(event.coverImageUrl ?? null)
       setInitialized(true)
@@ -303,6 +306,7 @@ export default function EventEditPage() {
       visibility: (visibility as "public" | "private") || undefined,
       ageRestriction: (ageRestriction as "all_ages" | "18_plus" | "21_plus") || undefined,
       capacity: capacity ? Number(capacity) : undefined,
+      timezone: timezone || undefined,
       startDate: startDate ? combineDateAndTime(startDate, startTime) : undefined,
       endDate: endDate ? combineDateAndTime(endDate, endTime) : undefined,
       doorsOpen: showDoors && doorsTime && startDate ? combineDateAndTime(startDate, doorsTime) : undefined,
@@ -775,6 +779,21 @@ export default function EventEditPage() {
                   + Set door time
                 </button>
               )}
+              <div>
+                <Label className="mb-2 block text-sm font-medium">Timezone</Label>
+                <Select value={timezone} onValueChange={setTimezone}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {US_TIMEZONES.map((tz) => (
+                      <SelectItem key={tz.value} value={tz.value}>
+                        {tz.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 

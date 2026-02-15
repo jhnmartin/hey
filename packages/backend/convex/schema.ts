@@ -142,6 +142,7 @@ export default defineSchema({
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
     doorsOpen: v.optional(v.number()),
+    timezone: v.optional(v.string()),
     venues: v.optional(v.array(v.object({
       name: v.string(),
       address: v.optional(v.string()),
