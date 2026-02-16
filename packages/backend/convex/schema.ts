@@ -17,6 +17,9 @@ export default defineSchema({
     city: v.optional(v.string()),
     dateOfBirth: v.optional(v.string()),
     role: v.union(v.literal("attendee"), v.literal("organizer")),
+    homeLat: v.optional(v.number()),
+    homeLng: v.optional(v.number()),
+    homeLocationName: v.optional(v.string()),
   })
     .index("by_token", ["tokenIdentifier"])
     .index("by_email", ["email"]),
@@ -150,6 +153,9 @@ export default defineSchema({
       state: v.optional(v.string()),
       zip: v.optional(v.string()),
       primary: v.optional(v.boolean()),
+      placeId: v.optional(v.string()),
+      lat: v.optional(v.number()),
+      lng: v.optional(v.number()),
     }))),
     coverImageId: v.optional(v.id("_storage")),
     coverImageOriginalId: v.optional(v.id("_storage")),

@@ -217,6 +217,9 @@ function VenueList() {
               city: result.city,
               state: result.state,
               zip: result.zip,
+              placeId: result.placeId,
+              lat: result.lat ?? undefined,
+              lng: result.lng ?? undefined,
             })
           }}
         />

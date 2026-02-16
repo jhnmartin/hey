@@ -12,6 +12,8 @@ import {
   IconCalendarPlus,
 } from "@tabler/icons-react"
 import { EventSignupDialog } from "@/components/event-signup-dialog"
+import { LocationBar } from "@/components/location-bar"
+import { useLocation } from "@/lib/location-context"
 
 type PendingAction = {
   type: "save" | "rsvp"
@@ -20,7 +22,21 @@ type PendingAction = {
 
 export default function BrowseEventsPage() {
   const { isSignedIn } = useAuth()
-  const events = useQuery(api.events.listPublic)
+  const { location } = useLocation()
+
+  const hasLocation = location.lat != null && location.lng != null
+  const nearbyEvents = useQuery(
+    api.events.listNearby,
+    hasLocation
+      ? { lat: location.lat!, lng: location.lng!, radiusMiles: location.radiusMiles }
+      : "skip",
+  )
+  const allEvents = useQuery(
+    api.events.listPublic,
+    hasLocation ? "skip" : {},
+  )
+  const events = hasLocation ? nearbyEvents : allEvents
+
   const savedEventIds = useQuery(
     api.savedEvents.listByProfile,
     isSignedIn ? {} : "skip",
@@ -71,7 +87,10 @@ export default function BrowseEventsPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="text-2xl font-bold">Browse Events</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Browse Events</h1>
+        <LocationBar />
+      </div>
 
       {events === undefined ? (
         <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
@@ -84,9 +103,15 @@ export default function BrowseEventsPage() {
         </div>
       ) : events.length === 0 ? (
         <div className="bg-muted/50 mt-6 rounded-xl p-12 text-center">
-          <p className="text-muted-foreground">No events to show right now.</p>
+          <p className="text-muted-foreground">
+            {hasLocation
+              ? "No events found within this radius."
+              : "No events to show right now."}
+          </p>
           <p className="text-muted-foreground mt-1 text-sm">
-            Check back soon for upcoming events.
+            {hasLocation
+              ? "Try increasing the radius or searching a different area."
+              : "Check back soon for upcoming events."}
           </p>
         </div>
       ) : (
@@ -94,6 +119,7 @@ export default function BrowseEventsPage() {
           {events.map((event) => {
             const isSaved = savedSet.has(event._id)
             const isRsvpd = rsvpSet.has(event._id)
+            const distanceMiles = "distanceMiles" in event ? (event as any).distanceMiles as number : null
 
             return (
               <div
@@ -117,6 +143,9 @@ export default function BrowseEventsPage() {
                     {event.venues && event.venues.length > 0 && (
                       <p className="text-muted-foreground text-xs">
                         {event.venues[0]!.name}
+                        {distanceMiles != null && (
+                          <span> · {distanceMiles} mi</span>
+                        )}
                       </p>
                     )}
                   </Link>

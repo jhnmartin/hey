@@ -1,6 +1,7 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { ConvexError, v } from "convex/values";
+import { haversineDistance } from "./lib/geo";
 
 export const create = mutation({
   args: {
@@ -18,6 +19,9 @@ export const create = mutation({
       state: v.optional(v.string()),
       zip: v.optional(v.string()),
       primary: v.optional(v.boolean()),
+      placeId: v.optional(v.string()),
+      lat: v.optional(v.number()),
+      lng: v.optional(v.number()),
     }))),
     coverImageId: v.optional(v.id("_storage")),
     coverImageOriginalId: v.optional(v.id("_storage")),
@@ -143,6 +147,52 @@ export const listPublic = query({
   },
 });
 
+export const listNearby = query({
+  args: {
+    lat: v.number(),
+    lng: v.number(),
+    radiusMiles: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const radius = args.radiusMiles ?? 25;
+
+    const events = await ctx.db
+      .query("events")
+      .withIndex("by_status", (q) => q.eq("status", "published"))
+      .collect();
+
+    const publicEvents = events.filter(
+      (e) => e.visibility === "public" && e.lifecycle !== "cancelled",
+    );
+
+    const withDistance: {
+      event: (typeof publicEvents)[number];
+      distanceMiles: number;
+    }[] = [];
+
+    for (const event of publicEvents) {
+      const venue = event.venues?.find((v) => v.primary) ?? event.venues?.[0];
+      if (!venue?.lat || !venue?.lng) continue;
+      const dist = haversineDistance(args.lat, args.lng, venue.lat, venue.lng);
+      if (dist <= radius) {
+        withDistance.push({ event, distanceMiles: Math.round(dist * 10) / 10 });
+      }
+    }
+
+    withDistance.sort((a, b) => a.distanceMiles - b.distanceMiles);
+
+    return await Promise.all(
+      withDistance.map(async ({ event, distanceMiles }) => {
+        let coverImageUrl: string | null = null;
+        if (event.coverImageId) {
+          coverImageUrl = await ctx.storage.getUrl(event.coverImageId);
+        }
+        return { ...event, coverImageUrl, distanceMiles };
+      }),
+    );
+  },
+});
+
 export const listByIds = query({
   args: { ids: v.array(v.id("events")) },
   handler: async (ctx, args) => {
@@ -180,6 +230,9 @@ export const update = mutation({
       state: v.optional(v.string()),
       zip: v.optional(v.string()),
       primary: v.optional(v.boolean()),
+      placeId: v.optional(v.string()),
+      lat: v.optional(v.number()),
+      lng: v.optional(v.number()),
     }))),
     coverImageId: v.optional(v.id("_storage")),
     coverImageOriginalId: v.optional(v.id("_storage")),
@@ -416,5 +469,33 @@ export const archive = mutation({
     if (!membership) throw new Error("Not a member of this organization");
 
     await ctx.db.patch(args.id, { status: "archived" });
+  },
+});
+
+// Internal helpers for migration
+export const _listAll = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("events").collect();
+  },
+});
+
+export const _patchVenues = internalMutation({
+  args: {
+    id: v.id("events"),
+    venues: v.array(v.object({
+      name: v.string(),
+      address: v.optional(v.string()),
+      city: v.optional(v.string()),
+      state: v.optional(v.string()),
+      zip: v.optional(v.string()),
+      primary: v.optional(v.boolean()),
+      placeId: v.optional(v.string()),
+      lat: v.optional(v.number()),
+      lng: v.optional(v.number()),
+    })),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, { venues: args.venues });
   },
 });

@@ -9,6 +9,9 @@ const venueSchema = z.object({
   city: z.string().optional(),
   state: z.string().optional(),
   zip: z.string().optional(),
+  placeId: z.string().optional(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
 })
 
 const ticketTypeSchema = z.object({
