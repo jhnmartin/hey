@@ -3,7 +3,7 @@ import { Bricolage_Grotesque, JetBrains_Mono, Libre_Bodoni } from "next/font/goo
 import "./globals.css";
 import ConvexClientProvider from "./ConvexClientProvider";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ViewSwitcher } from "@/components/view-switcher";
+
 import { Toaster } from "@/components/ui/sonner";
 
 const bricolage = Bricolage_Grotesque({
@@ -77,7 +77,6 @@ export default function RootLayout({
         >
           <ConvexClientProvider>
             {children}
-            <ViewSwitcher />
             <Toaster />
           </ConvexClientProvider>
         </ThemeProvider>

@@ -11,6 +11,7 @@ import {
   IconCreditCard,
   IconLogout,
   IconSparkles,
+  IconSwitchHorizontal,
 } from "@tabler/icons-react"
 
 import {
@@ -96,6 +97,12 @@ export function NavUser() {
               <DropdownMenuItem>
                 <IconSparkles />
                 Upgrade to Pro
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/events">
+                  <IconSwitchHorizontal />
+                  Attendee Mode
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

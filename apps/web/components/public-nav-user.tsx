@@ -20,6 +20,7 @@ import {
   IconBookmark,
   IconLogout,
   IconSettings,
+  IconSwitchHorizontal,
   IconUser,
 } from "@tabler/icons-react"
 
@@ -91,6 +92,17 @@ export function PublicNavUser() {
             Preferences
           </Link>
         </DropdownMenuItem>
+        {profile?.role === "organizer" && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard">
+                <IconSwitchHorizontal className="mr-2 size-4" />
+                Organizer Mode
+              </Link>
+            </DropdownMenuItem>
+          </>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => signOut()}>
           <IconLogout className="mr-2 size-4" />
