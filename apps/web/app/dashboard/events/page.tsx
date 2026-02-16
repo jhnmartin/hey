@@ -30,7 +30,7 @@ export default function EventsPage() {
   return (
     <>
       <SetPageTitle title="Events" />
-      <div className="flex items-center justify-between">
+      <div className="bg-background/80 sticky top-16 z-10 -mx-4 flex items-center justify-between px-4 py-2 backdrop-blur-sm group-has-data-[collapsible=icon]/sidebar-wrapper:top-12">
         <div className="bg-muted inline-flex items-center rounded-md p-0.5">
           <button
             onClick={() => setView("card")}
@@ -63,7 +63,7 @@ export default function EventsPage() {
 
       {!events ? (
         view === "card" ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
@@ -106,30 +106,43 @@ export default function EventsPage() {
           </Link>
         </div>
       ) : view === "card" ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
           {events.map((event) => (
             <Link
               key={event._id}
               href={`/dashboard/events/${event._id}`}
               className="bg-muted/50 hover:bg-muted/80 overflow-hidden rounded-xl transition-colors"
             >
-              {event.coverImageUrl && (
-                <img
-                  src={event.coverImageUrl}
-                  alt=""
-                  className="h-32 w-full object-cover"
-                />
-              )}
+              <div className="relative aspect-square w-full">
+                {event.coverImageUrl ? (
+                  <img
+                    src={event.coverImageUrl}
+                    alt=""
+                    className="size-full object-cover"
+                  />
+                ) : (
+                  <svg className="text-muted-foreground/20 size-full" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                      <pattern id={`diag-${event._id}`} width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                        <line x1="0" y1="0" x2="0" y2="8" stroke="currentColor" strokeWidth="1" />
+                      </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="currentColor" opacity="0.08" />
+                    <rect width="100%" height="100%" fill={`url(#diag-${event._id})`} />
+                  </svg>
+                )}
+                <Badge
+                  variant={
+                    event.status === "published" ? "default" : "secondary"
+                  }
+                  className="absolute right-2 top-2"
+                >
+                  {event.status}
+                </Badge>
+              </div>
               <div className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold">{event.name}</h3>
-                  <Badge
-                    variant={
-                      event.status === "published" ? "default" : "secondary"
-                    }
-                  >
-                    {event.status}
-                  </Badge>
                 </div>
                 {event.venues && event.venues.length > 0 && (
                   <p className="text-muted-foreground text-sm">

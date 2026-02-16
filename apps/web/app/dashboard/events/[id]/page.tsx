@@ -6,7 +6,7 @@ import { useQuery, useMutation } from "convex/react"
 import { api } from "@repo/backend/convex/_generated/api"
 import { ConvexError } from "convex/values"
 import { format } from "date-fns"
-import { IconCalendar, IconCrop, IconCurrencyDollar, IconGripVertical, IconLoader2, IconPhoto, IconPlus, IconReplace, IconTrash, IconTrashX, IconX } from "@tabler/icons-react"
+import { IconCalendar, IconCrop, IconCurrencyDollar, IconGripVertical, IconLoader2, IconPencil, IconPhoto, IconPlus, IconTrash, IconTrashX, IconX } from "@tabler/icons-react"
 import { EventImageCropDialog } from "@/components/event-image-crop-dialog"
 import {
   DndContext,
@@ -49,6 +49,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { US_TIMEZONES, getBrowserTimezone } from "@/lib/timezones"
 import { toast } from "sonner"
@@ -179,10 +180,12 @@ export default function EventEditPage() {
 
   // Cover image state
   const [coverImageId, setCoverImageId] = useState<string | null>(null)
+  const [coverImageOriginalId, setCoverImageOriginalId] = useState<string | null>(null)
   const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null)
   const [cropDialogOpen, setCropDialogOpen] = useState(false)
   const [selectedImageSrc, setSelectedImageSrc] = useState<string | null>(null)
   const [originalImageSrc, setOriginalImageSrc] = useState<string | null>(null)
+  const originalFileRef = useRef<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const coverInputRef = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver] = useState(false)
@@ -233,7 +236,11 @@ export default function EventEditPage() {
       setShowDoors(!!event.doorsOpen)
       setTimezone(event.timezone ?? getBrowserTimezone())
       setCoverImageId(event.coverImageId ?? null)
+      setCoverImageOriginalId(event.coverImageOriginalId ?? null)
       setCoverPreviewUrl(event.coverImageUrl ?? null)
+      if (event.coverImageOriginalUrl) {
+        setOriginalImageSrc(event.coverImageOriginalUrl)
+      }
       setTicketingMode(event.ticketingMode ?? "none")
       setExternalTicketUrl(event.externalTicketUrl ?? "")
       setInitialized(true)
@@ -258,8 +265,10 @@ export default function EventEditPage() {
     // Revoke previous original if replacing
     if (originalImageSrc) URL.revokeObjectURL(originalImageSrc)
     const url = URL.createObjectURL(file)
+    originalFileRef.current = file
     setOriginalImageSrc(url)
     setSelectedImageSrc(url)
+    setCoverImageOriginalId(null)
     setCropDialogOpen(true)
   }, [originalImageSrc])
 
@@ -267,6 +276,20 @@ export default function EventEditPage() {
     async (blob: Blob) => {
       setUploading(true)
       try {
+        // Upload original file if this is a new selection (not a re-crop)
+        if (originalFileRef.current) {
+          const origUrl = await generateUploadUrl()
+          const origResult = await fetch(origUrl, {
+            method: "POST",
+            headers: { "Content-Type": originalFileRef.current.type },
+            body: originalFileRef.current,
+          })
+          const { storageId: origId } = await origResult.json()
+          setCoverImageOriginalId(origId)
+          originalFileRef.current = null
+        }
+
+        // Upload cropped image
         const url = await generateUploadUrl()
         const result = await fetch(url, {
           method: "POST",
@@ -287,13 +310,16 @@ export default function EventEditPage() {
 
   const handleEditCrop = useCallback(() => {
     if (!originalImageSrc) return
+    originalFileRef.current = null
     setSelectedImageSrc(originalImageSrc)
     setCropDialogOpen(true)
   }, [originalImageSrc])
 
   const handleRemoveCover = useCallback(() => {
     if (originalImageSrc) URL.revokeObjectURL(originalImageSrc)
+    originalFileRef.current = null
     setCoverImageId(null)
+    setCoverImageOriginalId(null)
     setCoverPreviewUrl(null)
     setOriginalImageSrc(null)
   }, [originalImageSrc])
@@ -305,6 +331,7 @@ export default function EventEditPage() {
       name: name.trim() || undefined,
       tagline: tagline.trim() || undefined,
       ...(coverImageId ? { coverImageId: coverImageId as any } : {}),
+      ...(coverImageOriginalId ? { coverImageOriginalId: coverImageOriginalId as any } : {}),
       seoTitle: seoTitle.trim() || undefined,
       seoDescription: seoDescription.trim() || undefined,
       richDescription: richDescription.trim() || undefined,
@@ -421,19 +448,31 @@ export default function EventEditPage() {
     <>
       <SetPageTitle title={event.name} />
 
+      <Tabs defaultValue="info">
       {/* Header with actions */}
-      <div className="flex items-center justify-between">
+      <div className="bg-background/80 sticky top-16 z-10 -mx-4 flex items-center justify-between px-4 py-2 backdrop-blur-sm group-has-data-[collapsible=icon]/sidebar-wrapper:top-12">
+        <TabsList>
+          <TabsTrigger value="info">Info</TabsTrigger>
+          <TabsTrigger value="details">Details</TabsTrigger>
+          {ticketingMode !== "none" && (
+            <TabsTrigger value="ticketing">Ticketing</TabsTrigger>
+          )}
+        </TabsList>
         <div className="flex items-center gap-2">
           <span className={`rounded-md px-2.5 py-0.5 text-xs font-medium capitalize ${event.status === "published" ? "bg-green-600/20 text-green-500" : "bg-muted text-muted-foreground"}`}>
             {event.status}
           </span>
-          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteDialogOpen(true)}>
-            <IconTrashX className="size-4" />
+          <span className="bg-muted text-muted-foreground rounded-md px-2.5 py-0.5 text-xs font-medium capitalize">
+            {visibility === "private" ? "Private" : "Public"}
+          </span>
+          <span className="bg-muted text-muted-foreground rounded-md px-2.5 py-0.5 text-xs font-medium capitalize">
+            {ticketingMode === "platform" ? "Ticketed" : ticketingMode === "external" ? "Ticketed" : "RSVP"}
+          </span>
+          <Button variant="ghost" size="icon" onClick={handleSave} disabled={saving} title="Save draft">
+            <IconPencil className="size-4" />
           </Button>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleSave} disabled={saving}>
-            {saving ? "Saving..." : "Save Draft"}
+          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteDialogOpen(true)} title="Delete event">
+            <IconTrashX className="size-4" />
           </Button>
           {event.status !== "published" && (
             <Button onClick={handlePublish} disabled={publishing}>
@@ -463,535 +502,595 @@ export default function EventEditPage() {
         </div>
       )}
 
-      {/* Two-column grid */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* Left column — image + main content */}
-        <div className="space-y-4">
-          {/* Cover Image */}
-          {coverPreviewUrl ? (
-            <div className="relative aspect-square overflow-hidden rounded-xl">
-              <img
-                src={coverPreviewUrl}
-                alt=""
-                className="size-full rounded-xl object-contain"
-              />
-              <div className="absolute top-2 right-2 flex gap-1">
-                {originalImageSrc && (
-                  <button
-                    type="button"
-                    onClick={handleEditCrop}
-                    className="bg-background/80 hover:bg-background rounded-full p-1.5"
-                    title="Edit crop"
-                  >
-                    <IconCrop className="size-4" />
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => coverInputRef.current?.click()}
-                  className="bg-background/80 hover:bg-background rounded-full p-1.5"
-                  title="Replace image"
-                >
-                  <IconReplace className="size-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleRemoveCover}
-                  className="bg-background/80 hover:bg-background rounded-full p-1.5"
-                  title="Remove image"
-                >
-                  <IconTrash className="size-4" />
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => coverInputRef.current?.click()}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") coverInputRef.current?.click()
-              }}
-              onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={(e) => {
-                e.preventDefault()
-                setDragOver(false)
-                const file = e.dataTransfer.files[0]
-                if (file) handleCoverFile(file)
-              }}
-              className={cn(
-                "flex aspect-square cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors",
-                dragOver
-                  ? "border-primary bg-primary/5"
-                  : "border-muted-foreground/25 hover:border-muted-foreground/50",
-                uploading && "pointer-events-none opacity-50",
-              )}
-            >
-              {uploading ? (
-                <div className="flex items-center gap-2">
-                  <IconLoader2 className="text-muted-foreground size-5 animate-spin" />
-                  <p className="text-muted-foreground text-sm">Uploading...</p>
-                </div>
-              ) : (
-                <>
-                  <IconPhoto className="text-muted-foreground mb-2 size-10" />
-                  <p className="text-muted-foreground text-sm">Click or drag to upload cover image</p>
-                  <p className="text-muted-foreground/60 mt-1 text-xs">Recommended: 1080 × 1080 · Max 5MB</p>
-                </>
-              )}
-            </div>
-          )}
-          <input
-            ref={coverInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (file) handleCoverFile(file)
-              e.target.value = ""
-            }}
-          />
-          {selectedImageSrc && (
-            <EventImageCropDialog
-              open={cropDialogOpen}
-              onOpenChange={setCropDialogOpen}
-              imageSrc={selectedImageSrc}
-              onConfirm={handleCropConfirm}
-            />
-          )}
-
-          {/* Event Info */}
-          <div className="bg-muted/50 rounded-xl p-6">
-            <h3 className="mb-4 font-semibold">Event Info</h3>
+      {/* Info Tab */}
+        <TabsContent value="info">
+          <div className="grid gap-4 lg:grid-cols-2">
+            {/* Left column */}
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="name" className="mb-2 block text-sm font-medium">Name</Label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => { markTouched("name"); setName(e.target.value) }}
-                />
-              </div>
-              <div>
-                <Label htmlFor="tagline" className="mb-2 block text-sm font-medium">Short Description</Label>
-                <Input
-                  id="tagline"
-                  placeholder="A short description for your event"
-                  value={tagline}
-                  onChange={(e) => { markTouched("tagline"); setTagline(e.target.value) }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Venues */}
-          <div className="bg-muted/50 rounded-xl p-6">
-            <h3 className="mb-4 font-semibold">Venues</h3>
-            <div className="space-y-3">
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={venues.map((v) => v.name)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {venues.map((v, i) => (
-                    <SortableVenueItem
-                      key={v.name}
-                      venue={v}
-                      onRemove={() => {
-                        const remaining = venues.filter((_, j) => j !== i)
-                        if (v.primary && remaining.length > 0) {
-                          remaining[0] = { ...remaining[0]!, primary: true }
-                        }
-                        setVenues(remaining)
-                      }}
-                      onMakePrimary={() => {
-                        const updated = venues.map((venue, j) => ({
-                          ...venue,
-                          primary: j === i,
-                        }))
-                        const newPrimary = updated[i]!
-                        const rest = updated.filter((_, j) => j !== i)
-                        setVenues([newPrimary, ...rest])
-                      }}
-                    />
-                  ))}
-                </SortableContext>
-              </DndContext>
-              <VenueAutocomplete
-                onSelect={(result) => {
-                  setVenues([...venues, {
-                    name: result.venueName,
-                    address: result.address,
-                    city: result.city,
-                    state: result.state,
-                    zip: result.zip,
-                    primary: venues.length === 0,
-                  }])
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Description */}
-          <div className="bg-muted/50 rounded-xl p-6">
-            <h3 className="mb-4 font-semibold">Description</h3>
-            <div>
-              <Label htmlFor="richDescription" className="mb-2 block text-sm font-medium">
-                Marketing Description
-              </Label>
-              <p className="text-muted-foreground mb-2 text-xs">
-                AI-generated from your summary. Edit as needed.
-              </p>
-              <Textarea
-                id="richDescription"
-                rows={8}
-                value={richDescription}
-                onChange={(e) => { markTouched("richDescription"); setRichDescription(e.target.value) }}
-              />
-            </div>
-          </div>
-
-          {/* SEO */}
-          <div className="bg-muted/50 rounded-xl p-6">
-            <h3 className="mb-4 font-semibold">SEO</h3>
-            <div className="space-y-4">
-              <div>
-                <div className="mb-2 flex items-center justify-between">
-                  <Label htmlFor="seoTitle" className="text-sm font-medium">SEO Title</Label>
-                  <span className="text-muted-foreground text-xs">{seoTitle.length}/70</span>
-                </div>
-                <Input
-                  id="seoTitle"
-                  placeholder="SEO-optimized title for search engines"
-                  value={seoTitle}
-                  onChange={(e) => { markTouched("seoTitle"); setSeoTitle(e.target.value) }}
-                />
-              </div>
-              <div>
-                <div className="mb-2 flex items-center justify-between">
-                  <Label htmlFor="seoDescription" className="text-sm font-medium">SEO Description</Label>
-                  <span className="text-muted-foreground text-xs">{seoDescription.length}/160</span>
-                </div>
-                <Textarea
-                  id="seoDescription"
-                  placeholder="Meta description for search results"
-                  rows={2}
-                  value={seoDescription}
-                  onChange={(e) => { markTouched("seoDescription"); setSeoDescription(e.target.value) }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right column — metadata */}
-        <div className="space-y-4">
-          {/* Date/Time */}
-          <div className="bg-muted/50 rounded-xl p-6">
-            <h3 className="mb-4 font-semibold">Date & Time</h3>
-            <div className="space-y-4">
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <Label className="mb-2 block text-sm font-medium">Start Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !startDate && "text-muted-foreground",
-                        )}
-                      >
-                        <IconCalendar className="mr-2 size-4" />
-                        {startDate ? format(startDate, "PPP") : "Pick a date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={startDate}
-                        onSelect={setStartDate}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="w-28">
-                  <Label className="mb-2 block text-sm font-medium">Time</Label>
-                  <Input
-                    type="time"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
+              {/* Cover Image */}
+              {coverPreviewUrl ? (
+                <div className="relative aspect-square overflow-hidden rounded-xl">
+                  <img
+                    src={coverPreviewUrl}
+                    alt=""
+                    className="size-full rounded-xl object-contain"
                   />
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <Label className="mb-2 block text-sm font-medium">End Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !endDate && "text-muted-foreground",
-                        )}
-                      >
-                        <IconCalendar className="mr-2 size-4" />
-                        {endDate ? format(endDate, "PPP") : "Pick a date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={endDate}
-                        onSelect={setEndDate}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="w-28">
-                  <Label className="mb-2 block text-sm font-medium">Time</Label>
-                  <Input
-                    type="time"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                  />
-                </div>
-              </div>
-              {showDoors ? (
-                <div>
-                  <Label className="mb-2 block text-sm font-medium">Doors Open</Label>
-                  <Input
-                    type="time"
-                    value={doorsTime}
-                    onChange={(e) => setDoorsTime(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => { setShowDoors(false); setDoorsTime("") }}
-                    className="text-muted-foreground hover:text-foreground mt-2 text-xs underline"
-                  >
-                    Remove door time
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowDoors(true)}
-                  className="text-muted-foreground hover:text-foreground text-sm underline"
-                >
-                  + Set door time
-                </button>
-              )}
-              <div>
-                <Label className="mb-2 block text-sm font-medium">Timezone</Label>
-                <Select value={timezone} onValueChange={setTimezone}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {US_TIMEZONES.map((tz) => (
-                      <SelectItem key={tz.value} value={tz.value}>
-                        {tz.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          {/* Ticketing */}
-          <div className="bg-muted/50 rounded-xl p-6">
-            <h3 className="mb-4 font-semibold">Ticketing</h3>
-            <div className="space-y-4">
-              <div>
-                <Label className="mb-2 block text-sm font-medium">Ticketing Mode</Label>
-                <Select value={ticketingMode} onValueChange={setTicketingMode}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No Ticketing</SelectItem>
-                    <SelectItem value="platform">Platform Tickets</SelectItem>
-                    <SelectItem value="external">External Link</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {ticketingMode === "platform" && (
-                <div className="space-y-3">
-                  <Label className="block text-sm font-medium">Ticket Types</Label>
-                  {ticketTypes?.sort((a, b) => a.sortOrder - b.sortOrder).map((tt) => (
-                    <div key={tt._id} className="bg-background flex items-center gap-3 rounded-md border px-3 py-2">
-                      <IconCurrencyDollar className="text-muted-foreground size-4 shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">{tt.name}</p>
-                        <p className="text-muted-foreground text-xs">
-                          ${(tt.price / 100).toFixed(2)} · {tt.sold}/{tt.quantity} sold
-                        </p>
-                      </div>
+                  <div className="absolute top-2 left-2 flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => coverInputRef.current?.click()}
+                      className="bg-background/80 hover:bg-background rounded-full p-1.5"
+                      title="Replace image"
+                    >
+                      <IconPencil className="size-4" />
+                    </button>
+                    {originalImageSrc && (
                       <button
                         type="button"
-                        onClick={async () => {
-                          await removeTicketType({ id: tt._id })
-                          toast.success("Ticket type removed")
-                        }}
-                        className="text-muted-foreground hover:text-foreground shrink-0"
+                        onClick={handleEditCrop}
+                        className="bg-background/80 hover:bg-background rounded-full p-1.5"
+                        title="Edit crop"
                       >
-                        <IconX className="size-4" />
+                        <IconCrop className="size-4" />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleRemoveCover}
+                      className="bg-background/80 hover:bg-background rounded-full p-1.5"
+                      title="Remove image"
+                    >
+                      <IconTrash className="size-4" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => coverInputRef.current?.click()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") coverInputRef.current?.click()
+                  }}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    setDragOver(false)
+                    const file = e.dataTransfer.files[0]
+                    if (file) handleCoverFile(file)
+                  }}
+                  className={cn(
+                    "flex aspect-square cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors",
+                    dragOver
+                      ? "border-primary bg-primary/5"
+                      : "border-muted-foreground/25 hover:border-muted-foreground/50",
+                    uploading && "pointer-events-none opacity-50",
+                  )}
+                >
+                  {uploading ? (
+                    <div className="flex items-center gap-2">
+                      <IconLoader2 className="text-muted-foreground size-5 animate-spin" />
+                      <p className="text-muted-foreground text-sm">Uploading...</p>
+                    </div>
+                  ) : (
+                    <>
+                      <IconPhoto className="text-muted-foreground mb-2 size-10" />
+                      <p className="text-muted-foreground text-sm">Click or drag to upload cover image</p>
+                      <p className="text-muted-foreground/60 mt-1 text-xs">Recommended: 1080 × 1080 · Max 5MB</p>
+                    </>
+                  )}
+                </div>
+              )}
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) handleCoverFile(file)
+                  e.target.value = ""
+                }}
+              />
+              {selectedImageSrc && (
+                <EventImageCropDialog
+                  open={cropDialogOpen}
+                  onOpenChange={setCropDialogOpen}
+                  imageSrc={selectedImageSrc}
+                  onConfirm={handleCropConfirm}
+                />
+              )}
+
+            </div>
+
+            {/* Right column — Event summary */}
+            <div className="space-y-4">
+              <div className="bg-muted/50 rounded-xl p-6">
+                <h3 className="mb-4 font-semibold">Event Info</h3>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-muted-foreground text-xs font-medium">Name</p>
+                    <p className="text-sm">{name || <span className="text-muted-foreground italic">Untitled event</span>}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs font-medium">Date & Time</p>
+                    <p className="text-sm">
+                      {startDate ? format(startDate, "PPP") : "No start date"}{startTime ? ` at ${startTime}` : ""}
+                      {endDate ? ` — ${format(endDate, "PPP")}` : ""}{endTime ? ` at ${endTime}` : ""}
+                    </p>
+                    {timezone && (
+                      <p className="text-muted-foreground text-xs">{US_TIMEZONES.find((tz) => tz.value === timezone)?.label ?? timezone}</p>
+                    )}
+                  </div>
+                  {venues.find((v) => v.primary) && (
+                    <div>
+                      <p className="text-muted-foreground text-xs font-medium">Primary Venue</p>
+                      <p className="text-sm">{venues.find((v) => v.primary)!.name}</p>
+                      <p className="text-muted-foreground text-xs">
+                        {[venues.find((v) => v.primary)!.address, venues.find((v) => v.primary)!.city, venues.find((v) => v.primary)!.state].filter(Boolean).join(", ")}
+                      </p>
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    <span className={`rounded-md px-2.5 py-0.5 text-xs font-medium capitalize ${event.status === "published" ? "bg-green-600/20 text-green-500" : "bg-muted text-muted-foreground"}`}>
+                      {event.status}
+                    </span>
+                    <span className="bg-muted text-muted-foreground rounded-md px-2.5 py-0.5 text-xs font-medium capitalize">
+                      {visibility === "private" ? "Private" : "Public"}
+                    </span>
+                    <span className="bg-muted text-muted-foreground rounded-md px-2.5 py-0.5 text-xs font-medium capitalize">
+                      {ticketingMode === "none" ? "RSVP" : "Ticketed"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Details Tab */}
+        <TabsContent value="details">
+          <div className="grid gap-4 lg:grid-cols-2">
+            {/* Left column */}
+            <div className="space-y-4">
+              {/* Event Info */}
+              <div className="bg-muted/50 rounded-xl p-6">
+                <h3 className="mb-4 font-semibold">Event Info</h3>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="name" className="mb-2 block text-sm font-medium">Name</Label>
+                    <Input
+                      id="name"
+                      value={name}
+                      onChange={(e) => { markTouched("name"); setName(e.target.value) }}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="tagline" className="mb-2 block text-sm font-medium">Short Description</Label>
+                    <Input
+                      id="tagline"
+                      placeholder="A short description for your event"
+                      value={tagline}
+                      onChange={(e) => { markTouched("tagline"); setTagline(e.target.value) }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="bg-muted/50 rounded-xl p-6">
+                <h3 className="mb-4 font-semibold">Description</h3>
+                <div>
+                  <Label htmlFor="richDescription" className="mb-2 block text-sm font-medium">
+                    Marketing Description
+                  </Label>
+                  <p className="text-muted-foreground mb-2 text-xs">
+                    AI-generated from your summary. Edit as needed.
+                  </p>
+                  <Textarea
+                    id="richDescription"
+                    rows={8}
+                    value={richDescription}
+                    onChange={(e) => { markTouched("richDescription"); setRichDescription(e.target.value) }}
+                  />
+                </div>
+              </div>
+
+              {/* SEO */}
+              <div className="bg-muted/50 rounded-xl p-6">
+                <h3 className="mb-4 font-semibold">SEO</h3>
+                <div className="space-y-4">
+                  <div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <Label htmlFor="seoTitle" className="text-sm font-medium">SEO Title</Label>
+                      <span className="text-muted-foreground text-xs">{seoTitle.length}/70</span>
+                    </div>
+                    <Input
+                      id="seoTitle"
+                      placeholder="SEO-optimized title for search engines"
+                      value={seoTitle}
+                      onChange={(e) => { markTouched("seoTitle"); setSeoTitle(e.target.value) }}
+                    />
+                  </div>
+                  <div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <Label htmlFor="seoDescription" className="text-sm font-medium">SEO Description</Label>
+                      <span className="text-muted-foreground text-xs">{seoDescription.length}/160</span>
+                    </div>
+                    <Textarea
+                      id="seoDescription"
+                      placeholder="Meta description for search results"
+                      rows={2}
+                      value={seoDescription}
+                      onChange={(e) => { markTouched("seoDescription"); setSeoDescription(e.target.value) }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right column */}
+            <div className="space-y-4">
+              {/* Date/Time */}
+              <div className="bg-muted/50 rounded-xl p-6">
+                <h3 className="mb-4 font-semibold">Date & Time</h3>
+                <div className="space-y-4">
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <Label className="mb-2 block text-sm font-medium">Start Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !startDate && "text-muted-foreground",
+                            )}
+                          >
+                            <IconCalendar className="mr-2 size-4" />
+                            {startDate ? format(startDate, "PPP") : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={startDate}
+                            onSelect={setStartDate}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div className="w-28">
+                      <Label className="mb-2 block text-sm font-medium">Time</Label>
+                      <Input
+                        type="time"
+                        value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <Label className="mb-2 block text-sm font-medium">End Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !endDate && "text-muted-foreground",
+                            )}
+                          >
+                            <IconCalendar className="mr-2 size-4" />
+                            {endDate ? format(endDate, "PPP") : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={endDate}
+                            onSelect={setEndDate}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <div className="w-28">
+                      <Label className="mb-2 block text-sm font-medium">Time</Label>
+                      <Input
+                        type="time"
+                        value={endTime}
+                        onChange={(e) => setEndTime(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  {showDoors ? (
+                    <div>
+                      <Label className="mb-2 block text-sm font-medium">Doors Open</Label>
+                      <Input
+                        type="time"
+                        value={doorsTime}
+                        onChange={(e) => setDoorsTime(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => { setShowDoors(false); setDoorsTime("") }}
+                        className="text-muted-foreground hover:text-foreground mt-2 text-xs underline"
+                      >
+                        Remove door time
                       </button>
                     </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!event) return
-                      const name = prompt("Ticket type name:")
-                      if (!name) return
-                      const priceStr = prompt("Price in dollars (e.g. 25.00):")
-                      if (!priceStr) return
-                      const price = Math.round(parseFloat(priceStr) * 100)
-                      if (isNaN(price) || price < 0) return
-                      const qtyStr = prompt("Quantity available:")
-                      if (!qtyStr) return
-                      const quantity = parseInt(qtyStr)
-                      if (isNaN(quantity) || quantity < 1) return
-                      await createTicketType({
-                        eventId: event._id,
-                        name,
-                        price,
-                        quantity,
-                        sortOrder: (ticketTypes?.length ?? 0) + 1,
-                        status: "active",
-                      })
-                      toast.success("Ticket type added")
-                    }}
-                    className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm underline"
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setShowDoors(true)}
+                      className="text-muted-foreground hover:text-foreground text-sm underline"
+                    >
+                      + Set door time
+                    </button>
+                  )}
+                  <div>
+                    <Label className="mb-2 block text-sm font-medium">Timezone</Label>
+                    <Select value={timezone} onValueChange={setTimezone}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {US_TIMEZONES.map((tz) => (
+                          <SelectItem key={tz.value} value={tz.value}>
+                            {tz.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Venues */}
+              <div className="bg-muted/50 rounded-xl p-6">
+                <h3 className="mb-4 font-semibold">Venues</h3>
+                <div className="space-y-3">
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
                   >
-                    <IconPlus className="size-3" />
-                    Add Ticket Type
-                  </button>
+                    <SortableContext
+                      items={venues.map((v) => v.name)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {venues.map((v, i) => (
+                        <SortableVenueItem
+                          key={v.name}
+                          venue={v}
+                          onRemove={() => {
+                            const remaining = venues.filter((_, j) => j !== i)
+                            if (v.primary && remaining.length > 0) {
+                              remaining[0] = { ...remaining[0]!, primary: true }
+                            }
+                            setVenues(remaining)
+                          }}
+                          onMakePrimary={() => {
+                            const updated = venues.map((venue, j) => ({
+                              ...venue,
+                              primary: j === i,
+                            }))
+                            const newPrimary = updated[i]!
+                            const rest = updated.filter((_, j) => j !== i)
+                            setVenues([newPrimary, ...rest])
+                          }}
+                        />
+                      ))}
+                    </SortableContext>
+                  </DndContext>
+                  <VenueAutocomplete
+                    onSelect={(result) => {
+                      setVenues([...venues, {
+                        name: result.venueName,
+                        address: result.address,
+                        city: result.city,
+                        state: result.state,
+                        zip: result.zip,
+                        primary: venues.length === 0,
+                      }])
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Classification */}
+              <div className="bg-muted/50 rounded-xl p-6">
+                <h3 className="mb-4 font-semibold">Classification</h3>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="mb-2 block text-sm font-medium">Event Type</Label>
+                    <Select
+                      value={schemaEventType}
+                      onValueChange={(v) => { markTouched("schemaEventType"); setSchemaEventType(v) }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select event type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MusicEvent">Music Event</SelectItem>
+                        <SelectItem value="DanceEvent">Dance Event</SelectItem>
+                        <SelectItem value="Festival">Festival</SelectItem>
+                        <SelectItem value="SocialEvent">Social Event</SelectItem>
+                        <SelectItem value="ComedyEvent">Comedy Event</SelectItem>
+                        <SelectItem value="TheaterEvent">Theater Event</SelectItem>
+                        <SelectItem value="EducationEvent">Education Event</SelectItem>
+                        <SelectItem value="Event">Other Event</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="category" className="mb-2 block text-sm font-medium">Category</Label>
+                    <Input
+                      id="category"
+                      placeholder="e.g. Live Music, DJ Night"
+                      value={category}
+                      onChange={(e) => { markTouched("category"); setCategory(e.target.value) }}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="tags" className="mb-2 block text-sm font-medium">Tags</Label>
+                    <p className="text-muted-foreground mb-2 text-xs">Comma-separated</p>
+                    <Input
+                      id="tags"
+                      placeholder="e.g. house music, downtown"
+                      value={tags}
+                      onChange={(e) => { markTouched("tags"); setTags(e.target.value) }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Settings */}
+              <div className="bg-muted/50 rounded-xl p-6">
+                <h3 className="mb-4 font-semibold">Settings</h3>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="mb-2 block text-sm font-medium">Visibility</Label>
+                    <Select
+                      value={visibility}
+                      onValueChange={(v) => { markTouched("visibility"); setVisibility(v) }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="public">Public</SelectItem>
+                        <SelectItem value="private">Private</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="mb-2 block text-sm font-medium">Age Restriction</Label>
+                    <Select
+                      value={ageRestriction}
+                      onValueChange={(v) => { markTouched("ageRestriction"); setAgeRestriction(v) }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all_ages">All Ages</SelectItem>
+                        <SelectItem value="18_plus">18+</SelectItem>
+                        <SelectItem value="21_plus">21+</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="mb-2 block text-sm font-medium">Ticketing</Label>
+                    <Select value={ticketingMode} onValueChange={setTicketingMode}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No Ticketing</SelectItem>
+                        <SelectItem value="platform">Platform Tickets</SelectItem>
+                        <SelectItem value="external">External Link</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="capacity" className="mb-2 block text-sm font-medium">Capacity</Label>
+                    <Input
+                      id="capacity"
+                      type="number"
+                      placeholder="Max attendees"
+                      value={capacity}
+                      onChange={(e) => { markTouched("capacity"); setCapacity(e.target.value) }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Ticketing Tab (only when ticketing is enabled) */}
+        {ticketingMode !== "none" && (
+          <TabsContent value="ticketing">
+            <div className="space-y-4">
+              {ticketingMode === "platform" && (
+                <div className="bg-muted/50 rounded-xl p-6">
+                  <h3 className="mb-4 font-semibold">Ticket Types</h3>
+                  <div className="space-y-3">
+                    {ticketTypes?.sort((a, b) => a.sortOrder - b.sortOrder).map((tt) => (
+                      <div key={tt._id} className="bg-background flex items-center gap-3 rounded-md border px-3 py-2">
+                        <IconCurrencyDollar className="text-muted-foreground size-4 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{tt.name}</p>
+                          <p className="text-muted-foreground text-xs">
+                            ${(tt.price / 100).toFixed(2)} · {tt.sold}/{tt.quantity} sold
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            await removeTicketType({ id: tt._id })
+                            toast.success("Ticket type removed")
+                          }}
+                          className="text-muted-foreground hover:text-foreground shrink-0"
+                        >
+                          <IconX className="size-4" />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!event) return
+                        const name = prompt("Ticket type name:")
+                        if (!name) return
+                        const priceStr = prompt("Price in dollars (e.g. 25.00):")
+                        if (!priceStr) return
+                        const price = Math.round(parseFloat(priceStr) * 100)
+                        if (isNaN(price) || price < 0) return
+                        const qtyStr = prompt("Quantity available:")
+                        if (!qtyStr) return
+                        const quantity = parseInt(qtyStr)
+                        if (isNaN(quantity) || quantity < 1) return
+                        await createTicketType({
+                          eventId: event._id,
+                          name,
+                          price,
+                          quantity,
+                          sortOrder: (ticketTypes?.length ?? 0) + 1,
+                          status: "active",
+                        })
+                        toast.success("Ticket type added")
+                      }}
+                      className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm underline"
+                    >
+                      <IconPlus className="size-3" />
+                      Add Ticket Type
+                    </button>
+                  </div>
                 </div>
               )}
               {ticketingMode === "external" && (
-                <div>
-                  <Label htmlFor="externalTicketUrl" className="mb-2 block text-sm font-medium">
-                    External Ticket URL
-                  </Label>
-                  <Input
-                    id="externalTicketUrl"
-                    placeholder="https://eventbrite.com/..."
-                    value={externalTicketUrl}
-                    onChange={(e) => setExternalTicketUrl(e.target.value)}
-                  />
+                <div className="bg-muted/50 rounded-xl p-6">
+                  <h3 className="mb-4 font-semibold">External Ticketing</h3>
+                  <div>
+                    <Label htmlFor="externalTicketUrl" className="mb-2 block text-sm font-medium">
+                      External Ticket URL
+                    </Label>
+                    <Input
+                      id="externalTicketUrl"
+                      placeholder="https://eventbrite.com/..."
+                      value={externalTicketUrl}
+                      onChange={(e) => setExternalTicketUrl(e.target.value)}
+                    />
+                  </div>
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Classification */}
-          <div className="bg-muted/50 rounded-xl p-6">
-            <h3 className="mb-4 font-semibold">Classification</h3>
-            <div className="space-y-4">
-              <div>
-                <Label className="mb-2 block text-sm font-medium">Event Type</Label>
-                <Select
-                  value={schemaEventType}
-                  onValueChange={(v) => { markTouched("schemaEventType"); setSchemaEventType(v) }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select event type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MusicEvent">Music Event</SelectItem>
-                    <SelectItem value="DanceEvent">Dance Event</SelectItem>
-                    <SelectItem value="Festival">Festival</SelectItem>
-                    <SelectItem value="SocialEvent">Social Event</SelectItem>
-                    <SelectItem value="ComedyEvent">Comedy Event</SelectItem>
-                    <SelectItem value="TheaterEvent">Theater Event</SelectItem>
-                    <SelectItem value="EducationEvent">Education Event</SelectItem>
-                    <SelectItem value="Event">Other Event</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="category" className="mb-2 block text-sm font-medium">Category</Label>
-                <Input
-                  id="category"
-                  placeholder="e.g. Live Music, DJ Night"
-                  value={category}
-                  onChange={(e) => { markTouched("category"); setCategory(e.target.value) }}
-                />
-              </div>
-              <div>
-                <Label htmlFor="tags" className="mb-2 block text-sm font-medium">Tags</Label>
-                <p className="text-muted-foreground mb-2 text-xs">Comma-separated</p>
-                <Input
-                  id="tags"
-                  placeholder="e.g. house music, downtown"
-                  value={tags}
-                  onChange={(e) => { markTouched("tags"); setTags(e.target.value) }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Settings */}
-          <div className="bg-muted/50 rounded-xl p-6">
-            <h3 className="mb-4 font-semibold">Settings</h3>
-            <div className="space-y-4">
-              <div>
-                <Label className="mb-2 block text-sm font-medium">Visibility</Label>
-                <Select
-                  value={visibility}
-                  onValueChange={(v) => { markTouched("visibility"); setVisibility(v) }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="public">Public</SelectItem>
-                    <SelectItem value="private">Private</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="mb-2 block text-sm font-medium">Age Restriction</Label>
-                <Select
-                  value={ageRestriction}
-                  onValueChange={(v) => { markTouched("ageRestriction"); setAgeRestriction(v) }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all_ages">All Ages</SelectItem>
-                    <SelectItem value="18_plus">18+</SelectItem>
-                    <SelectItem value="21_plus">21+</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="capacity" className="mb-2 block text-sm font-medium">Capacity</Label>
-                <Input
-                  id="capacity"
-                  type="number"
-                  placeholder="Max attendees"
-                  value={capacity}
-                  onChange={(e) => { markTouched("capacity"); setCapacity(e.target.value) }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
+          </TabsContent>
+        )}
+      </Tabs>
       {/* Delete confirmation dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent showCloseButton={false}>
