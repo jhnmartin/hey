@@ -73,7 +73,7 @@ function combineDateAndTime(date: Date, time: string): number {
   return d.getTime()
 }
 
-type Venue = { name: string; address?: string; city?: string; state?: string; zip?: string; primary?: boolean }
+type Venue = { name: string; address?: string; city?: string; state?: string; zip?: string; primary?: boolean; placeId?: string; lat?: number; lng?: number }
 
 function SortableVenueItem({
   venue,
@@ -352,6 +352,9 @@ export default function EventEditPage() {
         state: v.state || undefined,
         zip: v.zip || undefined,
         primary: v.primary || undefined,
+        placeId: v.placeId || undefined,
+        lat: v.lat ?? undefined,
+        lng: v.lng ?? undefined,
       })) : undefined,
       ticketingMode: (ticketingMode as "platform" | "external" | "none") || undefined,
       externalTicketUrl: ticketingMode === "external" ? externalTicketUrl.trim() || undefined : undefined,
@@ -893,6 +896,9 @@ export default function EventEditPage() {
                         state: result.state,
                         zip: result.zip,
                         primary: venues.length === 0,
+                        placeId: result.placeId,
+                        lat: result.lat ?? undefined,
+                        lng: result.lng ?? undefined,
                       }])
                     }}
                   />

@@ -5,6 +5,7 @@ import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ConvexReactClient } from "convex/react";
 import { useEffect } from "react";
+import { LocationProvider } from "../lib/location-context";
 
 const convex = new ConvexReactClient(
   process.env.EXPO_PUBLIC_CONVEX_URL as string,
@@ -40,9 +41,11 @@ export default function RootLayout() {
     >
       <ClerkLoaded>
         <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-          <AuthGate>
-            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#fff1ee" } }} />
-          </AuthGate>
+          <LocationProvider>
+            <AuthGate>
+              <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#fff1ee" } }} />
+            </AuthGate>
+          </LocationProvider>
         </ConvexProviderWithClerk>
       </ClerkLoaded>
     </ClerkProvider>

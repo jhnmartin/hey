@@ -18,6 +18,8 @@ export type VenueResult = {
   city: string
   state: string
   zip: string
+  lat: number | null
+  lng: number | null
 }
 
 type VenueAutocompleteProps = {
@@ -79,6 +81,8 @@ export function VenueAutocomplete({ defaultValue, onSelect }: VenueAutocompleteP
         city: data.city ?? "",
         state: data.state ?? "",
         zip: data.zip ?? "",
+        lat: data.lat ?? null,
+        lng: data.lng ?? null,
       })
     } catch {
       onSelect({
@@ -88,6 +92,8 @@ export function VenueAutocomplete({ defaultValue, onSelect }: VenueAutocompleteP
         city: "",
         state: "",
         zip: "",
+        lat: null,
+        lng: null,
       })
     }
   }

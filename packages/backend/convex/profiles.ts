@@ -70,6 +70,9 @@ export const update = mutation({
     role: v.optional(
       v.union(v.literal("attendee"), v.literal("organizer")),
     ),
+    homeLat: v.optional(v.number()),
+    homeLng: v.optional(v.number()),
+    homeLocationName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -81,7 +84,7 @@ export const update = mutation({
     }
 
     const { id, ...fields } = args;
-    const updates: Record<string, string> = {};
+    const updates: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) {
         updates[key] = value;

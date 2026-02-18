@@ -10,10 +10,11 @@ import {
   Image,
 } from "react-native";
 import { Stack } from "expo-router";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@repo/backend/convex/_generated/api";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import * as ImagePicker from "expo-image-picker";
+import { Ionicons } from "@expo/vector-icons";
 
 function getInitials(name: string) {
   return name
@@ -35,8 +36,18 @@ export default function SettingsScreen() {
   const [city, setCity] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [bio, setBio] = useState("");
+  const [homeLat, setHomeLat] = useState<number | undefined>();
+  const [homeLng, setHomeLng] = useState<number | undefined>();
+  const [homeLocationName, setHomeLocationName] = useState("");
+  const [locationQuery, setLocationQuery] = useState("");
+  const [locationSuggestions, setLocationSuggestions] = useState<{ placeId: string; mainText: string; secondaryText: string }[]>([]);
+  const [locationSearching, setLocationSearching] = useState(false);
+  const locationDebounceRef = useRef<ReturnType<typeof setTimeout>>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  const autocomplete = useAction(api.places.autocomplete);
+  const getDetails = useAction(api.places.getDetails);
 
   useEffect(() => {
     if (profile) {
@@ -46,6 +57,9 @@ export default function SettingsScreen() {
       setCity(profile.city ?? "");
       setDateOfBirth(profile.dateOfBirth ?? "");
       setBio(profile.bio ?? "");
+      setHomeLat(profile.homeLat);
+      setHomeLng(profile.homeLng);
+      setHomeLocationName(profile.homeLocationName ?? "");
     }
   }, [profile]);
 
@@ -85,6 +99,35 @@ export default function SettingsScreen() {
     }
   }
 
+  function handleLocationQueryChange(val: string) {
+    setLocationQuery(val);
+    if (locationDebounceRef.current) clearTimeout(locationDebounceRef.current);
+    if (val.length < 2) { setLocationSuggestions([]); return; }
+    locationDebounceRef.current = setTimeout(async () => {
+      setLocationSearching(true);
+      try {
+        const result = await autocomplete({ input: val });
+        setLocationSuggestions(result.suggestions);
+      } catch { setLocationSuggestions([]); }
+      finally { setLocationSearching(false); }
+    }, 300);
+  }
+
+  async function handleLocationSelect(placeId: string) {
+    setLocationSuggestions([]);
+    setLocationQuery("");
+    try {
+      const details = await getDetails({ placeId });
+      const locName = [details.city, details.state].filter(Boolean).join(", ") || details.formattedAddress || "";
+      if (details.lat != null && details.lng != null) {
+        setHomeLat(details.lat);
+        setHomeLng(details.lng);
+        setHomeLocationName(locName);
+        if (!city) setCity(locName.split(",")[0]?.trim() ?? "");
+      }
+    } catch { /* ignore */ }
+  }
+
   async function handleSave() {
     if (!profile) return;
     setSaving(true);
@@ -96,6 +139,9 @@ export default function SettingsScreen() {
       city,
       dateOfBirth,
       bio,
+      ...(homeLat != null ? { homeLat } : {}),
+      ...(homeLng != null ? { homeLng } : {}),
+      ...(homeLocationName ? { homeLocationName } : {}),
     });
     setSaving(false);
     Alert.alert("Saved", "Your profile has been updated.");
@@ -158,6 +204,44 @@ export default function SettingsScreen() {
 
         <Text style={styles.label}>City</Text>
         <TextInput style={styles.input} value={city} onChangeText={setCity} />
+
+        <Text style={styles.label}>Home Location</Text>
+        <Text style={{ fontSize: 12, color: "#9ca3af", marginTop: 2 }}>
+          Used for nearby event discovery
+        </Text>
+        {homeLocationName ? (
+          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4, backgroundColor: "#f3f4f6", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10 }}>
+            <Ionicons name="location" size={16} color="#9ca3af" />
+            <Text style={{ flex: 1, marginLeft: 8, fontSize: 16, color: "#000" }}>{homeLocationName}</Text>
+            <Pressable onPress={() => { setHomeLat(undefined); setHomeLng(undefined); setHomeLocationName(""); }}>
+              <Ionicons name="close" size={18} color="#9ca3af" />
+            </Pressable>
+          </View>
+        ) : (
+          <View>
+            <TextInput
+              style={styles.input}
+              value={locationQuery}
+              onChangeText={handleLocationQueryChange}
+              placeholder="Search for a city..."
+              placeholderTextColor="#9ca3af"
+            />
+            {locationSuggestions.length > 0 && (
+              <View style={{ backgroundColor: "#fff", borderWidth: 1, borderColor: "#d1d5db", borderRadius: 8, marginTop: 4 }}>
+                {locationSuggestions.map((s, i) => (
+                  <Pressable
+                    key={s.placeId}
+                    onPress={() => handleLocationSelect(s.placeId)}
+                    style={{ paddingHorizontal: 12, paddingVertical: 10, borderTopWidth: i > 0 ? 1 : 0, borderTopColor: "#e5e7eb" }}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: "500", color: "#000" }}>{s.mainText}</Text>
+                    <Text style={{ fontSize: 12, color: "#9ca3af", marginTop: 1 }}>{s.secondaryText}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
 
         <Text style={styles.label}>Date of Birth</Text>
         <TextInput

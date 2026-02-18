@@ -23,6 +23,9 @@ export type VenueResult = {
   city: string;
   state: string;
   zip: string;
+  placeId: string;
+  lat: number | null;
+  lng: number | null;
 };
 
 type VenueAutocompleteProps = {
@@ -76,6 +79,9 @@ export function VenueAutocomplete({ onSelect }: VenueAutocompleteProps) {
         city: details.city ?? "",
         state: details.state ?? "",
         zip: details.zip ?? "",
+        placeId: suggestion.placeId,
+        lat: details.lat ?? null,
+        lng: details.lng ?? null,
       });
     } catch {
       onSelect({
@@ -84,6 +90,9 @@ export function VenueAutocomplete({ onSelect }: VenueAutocompleteProps) {
         city: "",
         state: "",
         zip: "",
+        placeId: suggestion.placeId,
+        lat: null,
+        lng: null,
       });
     } finally {
       setSelecting(false);
